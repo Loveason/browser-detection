@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebGL 测试</title>
+</head>
+<body>
+    <h1>WebGL 测试</h1>
+    <p>打开控制台查看结果</p>
+    
+    <script>
+        // 测试基本WebGL支持
+        const canvas = document.createElement('canvas');
+        const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+        
+        console.log('WebGL支持:', !!gl);
+        
+        if (gl) {
+            console.log('WebGL版本:', gl.getParameter(gl.VERSION));
+            console.log('WebGL供应商:', gl.getParameter(gl.VENDOR));
+            console.log('WebGL渲染器:', gl.getParameter(gl.RENDERER));
+            
+            // 测试简单的红色清除
+            canvas.width = 256;
+            canvas.height = 24;
+            gl.clearColor(1.0, 0.0, 0.0, 1.0);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+            
+            // 读取像素
+            const buffer = new Uint8Array(4);
+            gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, buffer);
+            console.log('像素数据:', buffer);
+            
+            // 计算简单哈希
+            let sum = 0;
+            for (let i = 0; i < buffer.length; i++) {
+                sum += buffer[i];
+            }
+            console.log('简单哈希:', sum.toString(16));
+            
+            document.body.appendChild(canvas);
+        }
+    </script>
+</body>
+</html>

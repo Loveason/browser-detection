@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>浏览器指纹检测系统</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔍 浏览器指纹检测系统</h1>
+            <p>检测您的浏览器指纹信息并分析是否存在爬虫行为</p>
+        </header>
+
+        <main>
+            <!-- 检测状态 -->
+            <div id="detection-status" class="status-card">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <span>正在收集指纹信息...</span>
+                </div>
+            </div>
+
+            <!-- 指纹信息展示 -->
+            <div id="fingerprint-results" class="results-container" style="display: none;">
+                <!-- 基础信息卡片 -->
+                <div class="card">
+                    <h3>📱 基础信息</h3>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <label>User Agent:</label>
+                            <span id="user-agent"></span>
+                        </div>
+                        <div class="info-item">
+                            <label>屏幕分辨率:</label>
+                            <span id="screen-resolution"></span>
+                        </div>
+                        <div class="info-item">
+                            <label>时区:</label>
+                            <span id="timezone"></span>
+                        </div>
+                        <div class="info-item">
+                            <label>语言:</label>
+                            <span id="language"></span>
+                        </div>
+                        <div class="info-item">
+                            <label>平台:</label>
+                            <span id="platform"></span>
+                        </div>
+                        <div class="info-item">
+                            <label>触摸支持:</label>
+                            <span id="touch-support"></span>
+                        </div>
+                        <div class="info-item">
+                            <label>Cookie 启用:</label>
+                            <span id="cookie-enabled"></span>
+                        </div>
+                        <div class="info-item">
+                            <label>Do Not Track:</label>
+                            <span id="do-not-track"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Canvas指纹卡片 -->
+                <div class="card canvas-card">
+                    <h3>🎨 Canvas 指纹</h3>
+                    <div class="canvas-container">
+                        <canvas id="fingerprint-canvas" width="200" height="50"></canvas>
+                        <div class="info-item">
+                            <label>Canvas 数据:</label>
+                            <textarea id="canvas-data" class="canvas-data-textarea" readonly></textarea>
+                        </div>
+                        
+                        <!-- Canvas噪点检测结果 -->
+                        <div class="noise-detection-section">
+                            <h4>🔍 噪点检测</h4>
+                            <div class="info-grid">
+                                <div class="info-item">
+                                    <label>动态噪点:</label>
+                                    <span id="canvas-dynamic-noise" class="noise-indicator"></span>
+                                </div>
+                                <div class="info-item">
+                                    <label>固定噪点:</label>
+                                    <span id="canvas-static-noise" class="noise-indicator"></span>
+                                </div>
+                                <div class="info-item" id="canvas-noise-details-container" style="display: none;">
+                                    <label>检测详情:</label>
+                                    <span id="canvas-noise-details"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- WebGL指纹卡片 - 参考网站风格 -->
+                <div class="card">
+                    <h3>🖥️ WebGL 指纹检测</h3>
+                    
+                    <!-- 指纹欺骗总览 -->
+                    <div class="webgl-spoofed-section">
+                        <h4>指纹欺骗检测</h4>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <label>WebGL指纹是否被篡改:</label>
+                                <span id="webgl-fingerprint-spoofed" class="webgl-indicator"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- WebGL支持检测 -->
+                    <div class="webgl-support-section">
+                        <h4>WebGL浏览器支持</h4>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <label>WebGL (基础支持):</label>
+                                <span id="webgl-basic-support"></span>
+                            </div>
+                            <div class="info-item">
+                                <label>实验性WebGL:</label>
+                                <span id="webgl-experimental-support"></span>
+                            </div>
+                            <div class="info-item">
+                                <label>WebGL readPixels:</label>
+                                <span id="webgl-readpixels-support"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 指纹结果 -->
+                    <div class="webgl-fingerprint-section">
+                        <h4>指纹结果</h4>
+                        <div class="webgl-fingerprint-grid">
+                            <!-- 红色矩形指纹 -->
+                            <div class="fingerprint-method">
+                                <div class="method-info">
+                                    <label>指纹ID<br>方法: 红色矩形</label>
+                                    <div id="webgl-red-box-canvas" class="webgl-canvas-container"></div>
+                                </div>
+                                <div class="method-result">
+                                    <span id="webgl-red-fingerprint">加载中...</span>
+                                </div>
+                            </div>
+
+                            <!-- 固定噪点检测结果 -->
+                            <div class="noise-detection-row">
+                                <div class="method-info">
+                                    <label>是否被固定噪点篡改:</label>
+                                </div>
+                                <div class="method-result">
+                                    <span id="webgl-persistent-noise" class="webgl-indicator"></span>
+                                </div>
+                            </div>
+
+                            <!-- DOM加载前随机图像 -->
+                            <div class="fingerprint-method">
+                                <div class="method-info">
+                                    <label>指纹ID<br>时间: DOM加载前<br>方法: 随机图像与颜色混合</label>
+                                    <div id="webgl-before-canvas" class="webgl-canvas-container"></div>
+                                </div>
+                                <div class="method-result">
+                                    <span id="webgl-before-fingerprint">加载中...</span>
+                                </div>
+                            </div>
+
+                            <!-- DOM加载后随机图像 -->
+                            <div class="fingerprint-method">
+                                <div class="method-info">
+                                    <label>指纹ID<br>时间: DOM加载后<br>方法: 随机图像与颜色混合</label>
+                                    <div id="webgl-after-canvas" class="webgl-canvas-container"></div>
+                                </div>
+                                <div class="method-result">
+                                    <span id="webgl-after-fingerprint">加载中...</span>
+                                </div>
+                            </div>
+
+                            <!-- 动态噪点检测结果 -->
+                            <div class="noise-detection-row">
+                                <div class="method-info">
+                                    <label>是否被动态噪点篡改:</label>
+                                </div>
+                                <div class="method-result">
+                                    <span id="webgl-random-noise" class="webgl-indicator"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 基础WebGL信息 -->
+                    <div class="webgl-info-section">
+                        <h4>WebGL设备信息</h4>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <label>WebGL 渲染器:</label>
+                                <span id="webgl-renderer"></span>
+                            </div>
+                            <div class="info-item">
+                                <label>WebGL 供应商:</label>
+                                <span id="webgl-vendor"></span>
+                            </div>
+                            <div class="info-item">
+                                <label>WebGL 版本:</label>
+                                <span id="webgl-version"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 检测详情 -->
+                    <div class="webgl-details-section">
+                        <h4>检测详情</h4>
+                        <div id="webgl-detection-details" class="detection-details"></div>
+                    </div>
+                </div>
+
+                <!-- 音频指纹卡片 -->
+                <div class="card">
+                    <h3>🔊 音频指纹详情</h3>
+                    
+                    <!-- 音频支持检测 -->
+                    <div class="audio-support-section">
+                        <h4>AudioContext 支持检测</h4>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <label>AudioContext (基础支持):</label>
+                                <span id="audio-basic-support"></span>
+                            </div>
+                            <div class="info-item">
+                                <label>Offline AudioContext:</label>
+                                <span id="audio-offline-support"></span>
+                            </div>
+                            <div class="info-item">
+                                <label>createAnalyser:</label>
+                                <span id="audio-create-analyser"></span>
+                            </div>
+                            <div class="info-item">
+                                <label>createOscillator:</label>
+                                <span id="audio-create-oscillator"></span>
+                            </div>
+                            <div class="info-item">
+                                <label>createGain:</label>
+                                <span id="audio-create-gain"></span>
+                            </div>
+                            <div class="info-item">
+                                <label>createDynamicsCompressor:</label>
+                                <span id="audio-create-compressor"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- AudioContext 属性 -->
+                    <div class="audio-properties-section">
+                        <h4>AudioContext 属性</h4>
+                        <div class="info-item">
+                            <label>属性详情:</label>
+                            <textarea id="audio-properties" readonly rows="8"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- 音频格式支持 -->
+                    <div class="audio-formats-section">
+                        <h4>音频格式支持</h4>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <label>OGG:</label>
+                                <span id="audio-format-ogg"></span>
+                            </div>
+                            <div class="info-item">
+                                <label>MP3:</label>
+                                <span id="audio-format-mp3"></span>
+                            </div>
+                            <div class="info-item">
+                                <label>WAV:</label>
+                                <span id="audio-format-wav"></span>
+                            </div>
+                            <div class="info-item">
+                                <label>M4A:</label>
+                                <span id="audio-format-m4a"></span>
+                            </div>
+                            <div class="info-item">
+                                <label>AAC:</label>
+                                <span id="audio-format-aac"></span>
+                            </div>
+                            <div class="info-item">
+                                <label>WebM:</label>
+                                <span id="audio-format-webm"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 音频设备信息 -->
+                    <div class="audio-devices-section">
+                        <h4>音频设备信息</h4>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <label>音频输入设备数量:</label>
+                                <span id="audio-input-count"></span>
+                            </div>
+                            <div class="info-item">
+                                <label>音频输出设备数量:</label>
+                                <span id="audio-output-count"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 指纹结果 -->
+                    <div class="audio-fingerprints-section">
+                        <h4>指纹结果</h4>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <label>属性指纹:</label>
+                                <span id="audio-properties-fingerprint" class="hash-value"></span>
+                            </div>
+                            <div class="info-item">
+                                <label>压缩器指纹:</label>
+                                <span id="audio-compressor-fingerprint" class="hash-value"></span>
+                            </div>
+                            <div class="info-item">
+                                <label>设备指纹:</label>
+                                <span id="audio-device-fingerprint" class="hash-value"></span>
+                            </div>
+                            <div class="info-item">
+                                <label>综合音频指纹:</label>
+                                <span id="audio-final-fingerprint" class="hash-value"></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Audio噪点检测结果 -->
+                    <div class="noise-detection-section">
+                        <h4>🔍 音频指纹篡改检测</h4>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <label>是否被人为篡改:</label>
+                                <span id="audio-dynamic-noise" class="noise-indicator"></span>
+                            </div>
+                        </div>
+                        
+                        <!-- 压缩器动态噪点检测详情 -->
+                        <div class="compressor-detection-section">
+                            <h5>🎚️ 音频压缩器一致性检测</h5>
+                            <div class="info-grid">
+                                <div class="info-item">
+                                    <label>检测详情:</label>
+                                    <span id="audio-compressor-details">未检测</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>检测置信度:</label>
+                                    <span id="audio-compressor-confidence">N/A</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>测试次数:</label>
+                                    <span id="audio-compressor-tests">N/A</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>分析时间:</label>
+                                    <span id="audio-compressor-time">N/A</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>指纹匹配:</label>
+                                    <span id="audio-fingerprint-match">N/A</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 综合检测摘要 -->
+                        <div class="noise-summary-section">
+                            <h5>📊 篡改检测摘要</h5>
+                            <div class="info-grid">
+                                <div class="info-item full-width">
+                                    <label>检测摘要:</label>
+                                    <span id="audio-noise-summary">等待检测...</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>整体置信度:</label>
+                                    <span id="audio-overall-confidence">N/A</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 字体检测卡片 -->
+                <div class="card">
+                    <h3>🔤 字体检测</h3>
+                    <div class="info-item">
+                        <label>检测到的字体数量:</label>
+                        <span id="font-count"></span>
+                    </div>
+                    <div class="font-list" id="font-list"></div>
+                </div>
+
+                <!-- 插件检测卡片 -->
+                <div class="card">
+                    <h3>🔌 插件检测</h3>
+                    <div class="info-item">
+                        <label>检测到的插件数量:</label>
+                        <span id="plugin-count"></span>
+                    </div>
+                    <div class="plugin-list" id="plugin-list"></div>
+                </div>
+
+                <!-- 指纹哈希卡片 -->
+                <div class="card fingerprint-hash">
+                    <h3>🔐 唯一指纹标识</h3>
+                    <div class="hash-container">
+                        <code id="fingerprint-hash"></code>
+                        <button id="copy-hash" class="copy-btn">复制</button>
+                    </div>
+                </div>
+
+                <!-- 分析结果卡片 -->
+                <div class="card analysis-card" id="analysis-results" style="display: none;">
+                    <h3>🎯 分析结果</h3>
+                    <div class="analysis-grid">
+                        <div class="analysis-item">
+                            <label>风险等级:</label>
+                            <span id="risk-level" class="risk-badge"></span>
+                        </div>
+                        <div class="analysis-item">
+                            <label>唯一性评分:</label>
+                            <span id="uniqueness-score"></span>
+                        </div>
+                        <div class="analysis-item">
+                            <label>爬虫评分:</label>
+                            <span id="bot-score"></span>
+                        </div>
+                        <div class="analysis-item">
+                            <label>是否为爬虫:</label>
+                            <span id="is-bot" class="bot-status"></span>
+                        </div>
+                        <div class="analysis-item">
+                            <label>访问次数:</label>
+                            <span id="visit-count"></span>
+                        </div>
+                    </div>
+                    <div class="reasons-section">
+                        <h4>检测原因:</h4>
+                        <ul id="detection-reasons"></ul>
+                    </div>
+                </div>
+
+                <!-- 操作按钮 -->
+                <div class="actions">
+                    <button id="refresh-btn" class="btn btn-primary">🔄 重新检测</button>
+                    <button id="export-btn" class="btn btn-secondary">📁 导出数据</button>
+                </div>
+            </div>
+
+            <!-- 错误显示 -->
+            <div id="error-message" class="error-card" style="display: none;">
+                <h3>❌ 检测失败</h3>
+                <p id="error-text"></p>
+                <button id="retry-btn" class="btn btn-primary">重试</button>
+            </div>
+        </main>
+
+        <footer>
+            <p>&copy; 2025 浏览器指纹检测系统</p>
+        </footer>
+    </div>
+
+    <!-- 通知弹窗 -->
+    <div id="notification" class="notification" style="display: none;">
+        <span id="notification-text"></span>
+    </div>
+
+    <script src="/static/js/fingerprint.js"></script>
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
