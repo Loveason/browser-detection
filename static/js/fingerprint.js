@@ -5,11 +5,11 @@ class FingerprintCollector {
         // 参考代码的工具函数
         this.utils = {
             // SHA-256 哈希计算
-            hash: function(buffer) {
+            hash: function (buffer) {
                 return crypto.subtle.digest('SHA-256', buffer);
             },
             // 将buffer转换为16进制字符串
-            buf2hex: function(buffer) {
+            buf2hex: function (buffer) {
                 return Array.from(new Uint8Array(buffer))
                     .map(byte => byte.toString(16).padStart(2, '0'))
                     .join('');
@@ -22,19 +22,19 @@ class FingerprintCollector {
         try {
             // 基础信息
             this.collectBasicInfo();
-            
+
             // Canvas指纹
             await this.collectCanvasFingerprint();
-            
+
             // WebGL指纹
             await this.collectWebGLFingerprint();
-            
+
             // 音频指纹
             await this.collectAudioFingerprint();
-            
+
             // 字体检测
             await this.collectFonts();
-            
+
             // 插件检测
             this.collectPlugins();
 
@@ -63,7 +63,7 @@ class FingerprintCollector {
             try {
                 const canvas = document.createElement('canvas');
                 const ctx = canvas.getContext('2d');
-                
+
                 canvas.width = 200;
                 canvas.height = 50;
 
@@ -72,10 +72,10 @@ class FingerprintCollector {
                 ctx.font = '14px Arial';
                 ctx.fillStyle = '#f60';
                 ctx.fillRect(125, 1, 62, 20);
-                
+
                 ctx.fillStyle = '#069';
                 ctx.fillText('Browser Fingerprint', 2, 15);
-                
+
                 ctx.fillStyle = 'rgba(102, 204, 0, 0.7)';
                 ctx.fillText('Canvas Test 🎨', 4, 45);
 
@@ -87,20 +87,20 @@ class FingerprintCollector {
 
                 // 获取Canvas数据
                 const canvasData = canvas.toDataURL();
-                
+
                 // 执行多次Canvas渲染以检测噪点
                 const noiseDetection = this.detectCanvasNoise(canvas, ctx);
-                
+
                 this.fingerprint.canvas = canvasData;
                 this.fingerprint.canvasNoiseDetection = noiseDetection;
-                
+
                 // 在页面上显示Canvas（用于用户查看）
                 const displayCanvas = document.getElementById('fingerprint-canvas');
                 if (displayCanvas) {
                     const displayCtx = displayCanvas.getContext('2d');
                     displayCtx.drawImage(canvas, 0, 0);
                 }
-                
+
                 resolve();
             } catch (error) {
                 console.error('Canvas fingerprint error:', error);
@@ -125,7 +125,7 @@ class FingerprintCollector {
             // 1. 基础WebGL支持检测
             const canvas = document.createElement('canvas');
             const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-            
+
             webglResults.supportInfo = {
                 basicSupport: !!gl,
                 experimentalSupport: !!canvas.getContext('experimental-webgl'),
@@ -141,12 +141,12 @@ class FingerprintCollector {
                     basicInfo: { message: 'WebGL not supported' }
                 });
                 this.fingerprint.webglSupportInfo = webglResults.supportInfo;
-                this.fingerprint.webglNoiseDetection = { 
-                    isSpoofed: false, 
+                this.fingerprint.webglNoiseDetection = {
+                    isSpoofed: false,
                     hasPersistentNoise: false,
                     hasRandomNoise: false,
-                    type: 'not_supported', 
-                    confidence: 1.0 
+                    type: 'not_supported',
+                    confidence: 1.0
                 };
                 return;
             }
@@ -183,12 +183,12 @@ class FingerprintCollector {
             console.error('WebGL fingerprint error:', error);
             this.fingerprint.webgl = 'error';
             this.fingerprint.webglSupportInfo = { basicSupport: false, error: error.message };
-            this.fingerprint.webglNoiseDetection = { 
-                isSpoofed: false, 
+            this.fingerprint.webglNoiseDetection = {
+                isSpoofed: false,
                 hasPersistentNoise: false,
                 hasRandomNoise: false,
-                type: 'error', 
-                confidence: 0 
+                type: 'error',
+                confidence: 0
             };
         }
     }
@@ -222,13 +222,13 @@ class FingerprintCollector {
         return new Promise((resolve) => {
             try {
                 console.log('开始固定噪点检测...');
-                
+
                 // 创建用于固定噪点检测的Canvas
                 const canvas = document.createElement('canvas');
                 canvas.width = 256;
                 canvas.height = 24;
-                const testGl = canvas.getContext('webgl', { preserveDrawingBuffer: true }) || 
-                              canvas.getContext('experimental-webgl', { preserveDrawingBuffer: true });
+                const testGl = canvas.getContext('webgl', { preserveDrawingBuffer: true }) ||
+                    canvas.getContext('experimental-webgl', { preserveDrawingBuffer: true });
 
                 if (!testGl) {
                     console.log('无法获取WebGL上下文');
@@ -241,26 +241,61 @@ class FingerprintCollector {
                     return;
                 }
 
-                // 使用参考网站的 drawRedRectangle 方法
-                this.drawRedRectangle(testGl, canvas);
+                // 直接使用参考网站的rectangle绘制代码
+                var indices = [3, 2, 1, 3, 1, 0];
+                var vertex_buffer = testGl.createBuffer();
+                testGl.bindBuffer(testGl.ARRAY_BUFFER, vertex_buffer);
+                testGl.bufferData(testGl.ARRAY_BUFFER, new Float32Array([-.75, .75, 0, -.75, -.75, 0, .75, -.75, 0, .75, .75, 0]), testGl.STATIC_DRAW);
+                testGl.bindBuffer(testGl.ARRAY_BUFFER, null);
+
+                var index_buffer = testGl.createBuffer();
+                testGl.bindBuffer(testGl.ELEMENT_ARRAY_BUFFER, index_buffer);
+                testGl.bufferData(testGl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), testGl.STATIC_DRAW);
+                testGl.bindBuffer(testGl.ELEMENT_ARRAY_BUFFER, null);
+
+                var vertShader = testGl.createShader(testGl.VERTEX_SHADER);
+                testGl.shaderSource(vertShader, 'attribute vec3 coordinates;void main(void) { gl_Position = vec4(coordinates, 1.0);}');
+                testGl.compileShader(vertShader);
+
+                var fragShader = testGl.createShader(testGl.FRAGMENT_SHADER);
+                testGl.shaderSource(fragShader, 'void main(void) { gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);}');
+                testGl.compileShader(fragShader);
+
+                var shaderProgram = testGl.createProgram();
+                testGl.attachShader(shaderProgram, vertShader);
+                testGl.attachShader(shaderProgram, fragShader);
+                testGl.linkProgram(shaderProgram);
+                testGl.useProgram(shaderProgram);
+
+                testGl.bindBuffer(testGl.ARRAY_BUFFER, vertex_buffer);
+                testGl.bindBuffer(testGl.ELEMENT_ARRAY_BUFFER, index_buffer);
+
+                var coord = testGl.getAttribLocation(shaderProgram, 'coordinates');
+                testGl.vertexAttribPointer(coord, 3, testGl.FLOAT, false, 0, 0);
+                testGl.enableVertexAttribArray(coord);
+
+                testGl.clearColor(0, 0, 0, 0);
+                testGl.enable(testGl.DEPTH_TEST);
+                testGl.clear(testGl.COLOR_BUFFER_BIT);
+                testGl.viewport(0, 0, canvas.width, canvas.height);
+                testGl.drawElements(testGl.TRIANGLES, indices.length, testGl.UNSIGNED_SHORT, 0);
 
                 setTimeout(() => {
                     try {
                         // 读取像素数据
                         const buffer = new Uint8Array(testGl.drawingBufferWidth * testGl.drawingBufferHeight * 4);
-                        testGl.readPixels(0, 0, testGl.drawingBufferWidth, testGl.drawingBufferHeight, 
-                                         testGl.RGBA, testGl.UNSIGNED_BYTE, buffer);
+                        testGl.readPixels(0, 0, testGl.drawingBufferWidth, testGl.drawingBufferHeight,
+                            testGl.RGBA, testGl.UNSIGNED_BYTE, buffer);
 
                         // 严格按照参考代码的计算方法: utils.hash(buffer).then(utils.buf2hex).then(resolve, reject)
                         this.utils.hash(buffer.buffer)
                             .then(this.utils.buf2hex)
                             .then(fingerprint => {
                                 console.log('生成的指纹:', fingerprint);
-                                
+
                                 // 已知的未被篡改的哈希值 (从参考网站获取)
                                 const knownHashes = [
                                     'bf9da7959d914298f9ce9e41a480fd66f76fac5c6f5e0a9b5a99b18cfc6fd997', // 参考网站的标准值
-                                    // 可以添加更多已知的正常哈希值
                                 ];
 
                                 const isKnownFingerprint = knownHashes.includes(fingerprint);
@@ -310,65 +345,39 @@ class FingerprintCollector {
         });
     }
 
-    // 绘制红色矩形 - 参考网站的标准方法
+    // 绘制红色矩形 - 严格按照参考网站实现
     drawRedRectangle(gl, canvas) {
         try {
-            const vertices = [-0.75, 0.75, 0, -0.75, -0.75, 0, 0.75, -0.75, 0, 0.75, 0.75, 0];
-            const indices = [3, 2, 1, 3, 1, 0];
-
-            // 创建顶点缓冲区
-            const vertexBuffer = gl.createBuffer();
-            gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
-            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+            // 完全按照参考网站的webgl.draw.rectangle实现
+            var indices = [3, 2, 1, 3, 1, 0];
+            var vertex_buffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-.75, .75, 0, -.75, -.75, 0, .75, -.75, 0, .75, .75, 0]), gl.STATIC_DRAW);
             gl.bindBuffer(gl.ARRAY_BUFFER, null);
 
-            // 创建索引缓冲区
-            const indexBuffer = gl.createBuffer();
-            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+            var index_buffer = gl.createBuffer();
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index_buffer);
             gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
             gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
 
-            // 创建顶点着色器
-            const vertShader = gl.createShader(gl.VERTEX_SHADER);
+            var vertShader = gl.createShader(gl.VERTEX_SHADER);
             gl.shaderSource(vertShader, 'attribute vec3 coordinates;void main(void) { gl_Position = vec4(coordinates, 1.0);}');
             gl.compileShader(vertShader);
-            
-            // 检查编译状态
-            if (!gl.getShaderParameter(vertShader, gl.COMPILE_STATUS)) {
-                console.error('顶点着色器编译错误:', gl.getShaderInfoLog(vertShader));
-                return;
-            }
 
-            // 创建片段着色器
-            const fragShader = gl.createShader(gl.FRAGMENT_SHADER);
-            gl.shaderSource(fragShader, 'void main(void) { gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);}'); // 红色
+            var fragShader = gl.createShader(gl.FRAGMENT_SHADER);
+            gl.shaderSource(fragShader, 'void main(void) { gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);}');
             gl.compileShader(fragShader);
-            
-            // 检查编译状态
-            if (!gl.getShaderParameter(fragShader, gl.COMPILE_STATUS)) {
-                console.error('片段着色器编译错误:', gl.getShaderInfoLog(fragShader));
-                return;
-            }
 
-            // 创建着色器程序
-            const shaderProgram = gl.createProgram();
+            var shaderProgram = gl.createProgram();
             gl.attachShader(shaderProgram, vertShader);
             gl.attachShader(shaderProgram, fragShader);
             gl.linkProgram(shaderProgram);
-            
-            // 检查链接状态
-            if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
-                console.error('着色器程序链接错误:', gl.getProgramInfoLog(shaderProgram));
-                return;
-            }
-            
             gl.useProgram(shaderProgram);
 
-            // 绑定缓冲区并绘制
-            gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
-            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+            gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index_buffer);
 
-            const coord = gl.getAttribLocation(shaderProgram, 'coordinates');
+            var coord = gl.getAttribLocation(shaderProgram, 'coordinates');
             gl.vertexAttribPointer(coord, 3, gl.FLOAT, false, 0, 0);
             gl.enableVertexAttribArray(coord);
 
@@ -377,14 +386,16 @@ class FingerprintCollector {
             gl.clear(gl.COLOR_BUFFER_BIT);
             gl.viewport(0, 0, canvas.width, canvas.height);
             gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
-            
-            console.log('红色矩形绘制完成');
+
+            return true;
+
         } catch (error) {
             console.error('绘制红色矩形时出错:', error);
+            return false;
         }
     }
 
-    // 检测WebGL动态噪点 - 随机图像方法（基于参考网站）
+    // 检测WebGL动态噪点 - 随机图像方法（严格按照参考网站实现）
     async detectWebGLRandomNoise(gl) {
         return new Promise((resolve) => {
             try {
@@ -397,60 +408,54 @@ class FingerprintCollector {
                     canvasAfter: null
                 };
 
-                // 第一次渲染 - DOM加载前的模拟
-                this.renderSimpleWebGLScene('before')
-                    .then(firstResult => {
-                        results.beforeDOMLoad = firstResult.fingerprint;
-                        results.canvasBefore = firstResult.canvas;
-
-                        // 等待一段时间后第二次渲染 - DOM加载后的模拟
-                        setTimeout(() => {
-                            this.renderSimpleWebGLScene('after')
-                                .then(secondResult => {
-                                    results.afterDOMLoad = secondResult.fingerprint;
-                                    results.canvasAfter = secondResult.canvas;
-
-                                    // 比较两次结果
-                                    const isDifferent = results.beforeDOMLoad !== results.afterDOMLoad;
-                                    
-                                    console.log('动态噪点检测完成，第一次:', results.beforeDOMLoad, '第二次:', results.afterDOMLoad);
-                                    
-                                    resolve({
-                                        beforeDOMLoad: results.beforeDOMLoad,
-                                        afterDOMLoad: results.afterDOMLoad,
-                                        canvasBefore: results.canvasBefore,
-                                        canvasAfter: results.canvasAfter,
-                                        isDifferent: isDifferent,
-                                        isSpoofed: isDifferent,
-                                        method: 'random_image_with_color_mixing'
-                                    });
-                                })
-                                .catch(error => {
-                                    console.error('第二次渲染出错:', error);
-                                    resolve({
-                                        beforeDOMLoad: results.beforeDOMLoad,
-                                        afterDOMLoad: 'error',
-                                        canvasBefore: results.canvasBefore,
-                                        canvasAfter: null,
-                                        isDifferent: true,
-                                        isSpoofed: false,
-                                        error: error.message
-                                    });
-                                });
-                        }, 100);
+                // 严格按照参考网站的Promise.all实现
+                Promise.all([
+                    // 第一次渲染 - DOM加载前的模拟（立即执行）
+                    getBrowserFingerPrint(),
+                    // 第二次渲染 - DOM加载后的模拟（等待load事件）
+                    new Promise((resolveLoad, rejectLoad) => {
+                        if (document.readyState === 'complete') {
+                            // 如果DOM已经加载完成，立即执行
+                            getBrowserFingerPrint().then(resolveLoad, rejectLoad);
+                        } else {
+                            // 否则等待load事件
+                            window.addEventListener("load", () => {
+                                getBrowserFingerPrint().then(resolveLoad, rejectLoad);
+                            });
+                        }
                     })
-                    .catch(error => {
-                        console.error('第一次渲染出错:', error);
-                        resolve({
-                            beforeDOMLoad: 'error',
-                            afterDOMLoad: 'error',
-                            canvasBefore: null,
-                            canvasAfter: null,
-                            isDifferent: false,
-                            isSpoofed: false,
-                            error: error.message
-                        });
+                ]).then(([firstResult, secondResult]) => {
+                    results.beforeDOMLoad = firstResult.fingerprint;
+                    results.canvasBefore = firstResult.canvas;
+                    results.afterDOMLoad = secondResult.fingerprint;
+                    results.canvasAfter = secondResult.canvas;
+
+                    // 比较两次结果
+                    const isDifferent = results.beforeDOMLoad !== results.afterDOMLoad;
+                    
+                    console.log('动态噪点检测完成，第一次:', results.beforeDOMLoad, '第二次:', results.afterDOMLoad);
+                    
+                    resolve({
+                        beforeDOMLoad: results.beforeDOMLoad,
+                        afterDOMLoad: results.afterDOMLoad,
+                        canvasBefore: results.canvasBefore,
+                        canvasAfter: results.canvasAfter,
+                        isDifferent: isDifferent,
+                        isSpoofed: isDifferent,
+                        method: 'random_image_with_color_mixing'
                     });
+                }).catch(error => {
+                    console.error('WebGL动态噪点检测出错:', error);
+                    resolve({
+                        beforeDOMLoad: 'error',
+                        afterDOMLoad: 'error',
+                        canvasBefore: null,
+                        canvasAfter: null,
+                        isDifferent: false,
+                        isSpoofed: false,
+                        error: error.message
+                    });
+                });
 
             } catch (error) {
                 console.error('动态噪点检测出错:', error);
@@ -465,319 +470,6 @@ class FingerprintCollector {
                 });
             }
         });
-    }
-
-    // 渲染简单的WebGL场景
-    async renderSimpleWebGLScene(phase) {
-        return new Promise((resolve) => {
-            try {
-                const canvas = document.createElement('canvas');
-                canvas.width = 150;
-                canvas.height = 150;
-                const gl = canvas.getContext('webgl', { preserveDrawingBuffer: true }) || 
-                          canvas.getContext('experimental-webgl', { preserveDrawingBuffer: true });
-
-                if (!gl) {
-                    resolve({ fingerprint: 'no_webgl', canvas: null });
-                    return;
-                }
-
-                // 简单的渐变背景，根据phase略微不同
-                const color1 = phase === 'before' ? 1.0 : 0.95;
-                const color2 = phase === 'before' ? 1.0 : 0.98;
-                
-                gl.clearColor(color1, color2, 0.0, 1.0); // 黄色系渐变
-                gl.clear(gl.COLOR_BUFFER_BIT);
-
-                setTimeout(() => {
-                    try {
-                        const buffer = new Uint8Array(gl.drawingBufferWidth * gl.drawingBufferHeight * 4);
-                        gl.readPixels(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight, 
-                                     gl.RGBA, gl.UNSIGNED_BYTE, buffer);
-
-                        // 严格按照参考代码的计算方法: utils.hash(buffer).then(utils.buf2hex).then(resolve, reject)
-                        this.utils.hash(buffer.buffer)
-                            .then(this.utils.buf2hex)
-                            .then(fingerprint => {
-                                resolve({
-                                    fingerprint: fingerprint + '_' + phase,
-                                    canvas: canvas,
-                                    phase: phase
-                                });
-                            })
-                            .catch(error => {
-                                console.error('哈希计算失败:', error);
-                                resolve({
-                                    fingerprint: 'hash_error_' + phase,
-                                    canvas: null,
-                                    error: error.message
-                                });
-                            });
-
-                    } catch (readError) {
-                        console.error('读取WebGL像素时出错:', readError);
-                        resolve({
-                            fingerprint: 'read_error',
-                            canvas: null,
-                            error: readError.message
-                        });
-                    }
-                }, 100);
-
-            } catch (error) {
-                console.error('渲染WebGL场景时出错:', error);
-                resolve({
-                    fingerprint: 'error',
-                    canvas: null,
-                    error: error.message
-                });
-            }
-        });
-    }
-
-    // 渲染随机图像与颜色混合 - 参考网站的复杂渲染方法
-    async renderRandomImageWithColorMixing(width, height, phase) {
-        return new Promise((resolve) => {
-            try {
-                const canvas = document.createElement('canvas');
-                canvas.width = width;
-                canvas.height = height;
-                const gl = canvas.getContext('webgl', { preserveDrawingBuffer: true }) || 
-                          canvas.getContext('experimental-webgl', { preserveDrawingBuffer: true });
-
-                if (!gl) {
-                    resolve({ fingerprint: 'no_webgl', canvas: null });
-                    return;
-                }
-
-                // 使用复杂的WebGL渲染来创建"随机"图像
-                this.drawComplexWebGLScene(gl, canvas, phase);
-
-                setTimeout(() => {
-                    try {
-                        const buffer = new Uint8Array(gl.drawingBufferWidth * gl.drawingBufferHeight * 4);
-                        gl.readPixels(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight, 
-                                     gl.RGBA, gl.UNSIGNED_BYTE, buffer);
-
-                        const fingerprint = this.calculateWebGLHash(buffer);
-                        
-                        resolve({
-                            fingerprint: fingerprint,
-                            canvas: canvas,
-                            phase: phase
-                        });
-
-                    } catch (readError) {
-                        resolve({
-                            fingerprint: 'read_error',
-                            canvas: null,
-                            error: readError.message
-                        });
-                    }
-                }, 500);
-
-            } catch (error) {
-                resolve({
-                    fingerprint: 'error',
-                    canvas: null,
-                    error: error.message
-                });
-            }
-        });
-    }
-
-    // 绘制复杂的WebGL场景
-    drawComplexWebGLScene(gl, canvas, phase) {
-        try {
-            // 创建复杂的立方体场景，参考网站的方法
-            const shaders = {
-                vertex: `
-                    precision mediump float;
-                    attribute vec4 avertPosition;
-                    attribute vec4 avertColor;
-                    varying vec4 vfragColor;
-                    uniform mat4 umodelMatrix;
-                    uniform mat4 uprojectionMatrix;
-                    void main() {
-                        vfragColor = avertColor;
-                        gl_Position = uprojectionMatrix * umodelMatrix * avertPosition;
-                    }
-                `,
-                fragment: `
-                    precision mediump float;
-                    varying vec4 vfragColor;
-                    void main() {
-                        gl_FragColor = vfragColor;
-                    }
-                `
-            };
-
-            // 创建着色器
-            const vertexShader = this.createShader(gl, gl.VERTEX_SHADER, shaders.vertex);
-            const fragmentShader = this.createShader(gl, gl.FRAGMENT_SHADER, shaders.fragment);
-            
-            if (!vertexShader || !fragmentShader) return;
-
-            // 创建程序
-            const program = gl.createProgram();
-            gl.attachShader(program, vertexShader);
-            gl.attachShader(program, fragmentShader);
-            gl.linkProgram(program);
-
-            if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-                console.error('Program link error:', gl.getProgramInfoLog(program));
-                return;
-            }
-
-            gl.useProgram(program);
-
-            // 创建立方体几何体
-            const cubeBuffers = this.createCubeBuffers(gl);
-            
-            // 设置投影矩阵
-            const projectionMatrix = this.createProjectionMatrix(canvas.width / canvas.height);
-            const modelMatrix = this.createModelMatrix(phase);
-
-            // 获取uniform位置
-            const projectionLocation = gl.getUniformLocation(program, 'uprojectionMatrix');
-            const modelLocation = gl.getUniformLocation(program, 'umodelMatrix');
-
-            // 设置uniform
-            gl.uniformMatrix4fv(projectionLocation, false, projectionMatrix);
-            gl.uniformMatrix4fv(modelLocation, false, modelMatrix);
-
-            // 绑定顶点数据
-            const positionLocation = gl.getAttribLocation(program, 'avertPosition');
-            const colorLocation = gl.getAttribLocation(program, 'avertColor');
-
-            gl.bindBuffer(gl.ARRAY_BUFFER, cubeBuffers.position);
-            gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 0, 0);
-            gl.enableVertexAttribArray(positionLocation);
-
-            gl.bindBuffer(gl.ARRAY_BUFFER, cubeBuffers.color);
-            gl.vertexAttribPointer(colorLocation, 4, gl.FLOAT, false, 0, 0);
-            gl.enableVertexAttribArray(colorLocation);
-
-            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeBuffers.indices);
-
-            // 设置渲染状态
-            gl.viewport(0, 0, canvas.width, canvas.height);
-            gl.clearColor(1, 1, 0, 1); // 黄色背景
-            gl.clearDepth(1.0);
-            gl.enable(gl.DEPTH_TEST);
-            gl.depthFunc(gl.LEQUAL);
-            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-            // 绘制立方体
-            gl.drawElements(gl.TRIANGLES, 36, gl.UNSIGNED_SHORT, 0);
-
-        } catch (error) {
-            console.error('WebGL scene rendering error:', error);
-        }
-    }
-
-    // 创建着色器
-    createShader(gl, type, source) {
-        const shader = gl.createShader(type);
-        gl.shaderSource(shader, source);
-        gl.compileShader(shader);
-
-        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-            console.error('Shader compile error:', gl.getShaderInfoLog(shader));
-            gl.deleteShader(shader);
-            return null;
-        }
-
-        return shader;
-    }
-
-    // 创建立方体缓冲区
-    createCubeBuffers(gl) {
-        // 立方体顶点
-        const positions = [
-            -1, -1,  1,  1, -1,  1,  1,  1,  1, -1,  1,  1,
-            -1, -1, -1, -1,  1, -1,  1,  1, -1,  1, -1, -1,
-            -1,  1, -1, -1,  1,  1,  1,  1,  1,  1,  1, -1,
-            -1, -1, -1,  1, -1, -1,  1, -1,  1, -1, -1,  1,
-             1, -1, -1,  1,  1, -1,  1,  1,  1,  1, -1,  1,
-            -1, -1, -1, -1, -1,  1, -1,  1,  1, -1,  1, -1
-        ];
-
-        // 立方体颜色（每个面不同颜色）
-        const faceColors = [
-            [1.0, 1.0, 1.0, 1.0], // 白色
-            [1.0, 0.0, 0.0, 1.0], // 红色
-            [0.0, 1.0, 0.0, 1.0], // 绿色
-            [0.0, 0.0, 1.0, 1.0], // 蓝色
-            [1.0, 1.0, 0.0, 1.0], // 黄色
-            [1.0, 0.0, 1.0, 1.0]  // 品红色
-        ];
-
-        let colors = [];
-        for (let j = 0; j < faceColors.length; ++j) {
-            const c = faceColors[j];
-            colors = colors.concat(c, c, c, c);
-        }
-
-        // 索引
-        const indices = [
-            0,  1,  2,    0,  2,  3,
-            4,  5,  6,    4,  6,  7,
-            8,  9,  10,   8,  10, 11,
-            12, 13, 14,   12, 14, 15,
-            16, 17, 18,   16, 18, 19,
-            20, 21, 22,   20, 22, 23
-        ];
-
-        // 创建缓冲区
-        const positionBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
-
-        const colorBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
-
-        const indexBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
-
-        return {
-            position: positionBuffer,
-            color: colorBuffer,
-            indices: indexBuffer
-        };
-    }
-
-    // 创建投影矩阵
-    createProjectionMatrix(aspect) {
-        const fov = 45 * Math.PI / 180;
-        const near = 0.1;
-        const far = 100.0;
-
-        const f = Math.tan(Math.PI * 0.5 - 0.5 * fov);
-        const rangeInv = 1.0 / (near - far);
-
-        return [
-            f / aspect, 0, 0, 0,
-            0, f, 0, 0,
-            0, 0, (near + far) * rangeInv, -1,
-            0, 0, near * far * rangeInv * 2, 0
-        ];
-    }
-
-    // 创建模型矩阵
-    createModelMatrix(phase) {
-        // 根据phase创建略微不同的变换
-        const translateZ = -6;
-        const rotationOffset = phase === 'before' ? 0 : 0.1;
-
-        return [
-            Math.cos(rotationOffset), 0, Math.sin(rotationOffset), 0,
-            0, 1, 0, 0,
-            -Math.sin(rotationOffset), 0, Math.cos(rotationOffset), 0,
-            0, 0, translateZ, 1
-        ];
     }
 
     // 分析WebGL欺骗情况
@@ -796,7 +488,7 @@ class FingerprintCollector {
             if (fingerprintData.persistentNoise) {
                 analysis.hasPersistentNoise = fingerprintData.persistentNoise.isSpoofed;
                 analysis.fingerprintResults.redSolidBox = fingerprintData.persistentNoise.fingerprint;
-                
+
                 if (fingerprintData.persistentNoise.isSpoofed) {
                     analysis.details.push('固定噪点检测：红色矩形指纹不匹配已知值');
                     analysis.confidence = Math.max(analysis.confidence, 0.8);
@@ -810,7 +502,7 @@ class FingerprintCollector {
                 analysis.hasRandomNoise = fingerprintData.randomNoise.isSpoofed;
                 analysis.fingerprintResults.beforeDOMLoad = fingerprintData.randomNoise.beforeDOMLoad;
                 analysis.fingerprintResults.afterDOMLoad = fingerprintData.randomNoise.afterDOMLoad;
-                
+
                 if (fingerprintData.randomNoise.isSpoofed) {
                     analysis.details.push('动态噪点检测：DOM加载前后指纹不一致');
                     analysis.confidence = Math.max(analysis.confidence, 0.9);
@@ -821,7 +513,7 @@ class FingerprintCollector {
 
             // 综合判断
             analysis.isSpoofed = analysis.hasPersistentNoise || analysis.hasRandomNoise;
-            
+
             if (analysis.isSpoofed) {
                 analysis.details.unshift('⚠️ 检测到WebGL指纹被篡改');
             } else {
@@ -849,17 +541,17 @@ class FingerprintCollector {
             // 使用简化的哈希算法
             let hash = '';
             const uint8Array = new Uint8Array(buffer);
-            
+
             // 取样本点进行哈希计算
             const sampleSize = Math.min(1000, uint8Array.length);
             for (let i = 0; i < sampleSize; i++) {
                 const index = Math.floor(i * uint8Array.length / sampleSize);
                 hash += uint8Array[index].toString(16).padStart(2, '0');
             }
-            
+
             // 生成固定长度的哈希
             return this.simpleHash(hash).substring(0, 64);
-            
+
         } catch (error) {
             return 'hash_error';
         }
@@ -869,13 +561,13 @@ class FingerprintCollector {
     simpleHash(str) {
         let hash = 0;
         if (str.length === 0) return hash.toString();
-        
+
         for (let i = 0; i < str.length; i++) {
             const char = str.charCodeAt(i);
             hash = ((hash << 5) - hash) + char;
             hash = hash & hash; // 转换为32位整数
         }
-        
+
         return Math.abs(hash).toString(16);
     }
 
@@ -917,7 +609,7 @@ class FingerprintCollector {
             if (completedMethods >= totalMethods) {
                 // 合并所有音频指纹结果
                 const combinedFingerprint = this.combineAudioFingerprints(audioResults);
-                
+
                 // 保存详细信息到fingerprint对象以便显示
                 this.fingerprint.audioDetails = audioResults;
                 this.fingerprint.audio = combinedFingerprint;
@@ -943,7 +635,7 @@ class FingerprintCollector {
         try {
             const AudioContextClass = window.AudioContext || window.webkitAudioContext;
             const OfflineAudioContextClass = window.OfflineAudioContext || window.webkitOfflineAudioContext;
-            
+
             results.supportInfo = {
                 basicSupport: !!AudioContextClass,
                 offlineSupport: !!OfflineAudioContextClass,
@@ -969,7 +661,7 @@ class FingerprintCollector {
             const analyser = context.createAnalyser();
 
             const properties = {};
-            
+
             // 复制AudioContext属性
             this.copyAudioProperties(properties, context, 'AudioContext');
             this.copyAudioProperties(properties, context.destination, 'Destination');
@@ -978,7 +670,7 @@ class FingerprintCollector {
 
             results.properties = properties;
             results.fingerprints.properties = this.calculateAudioHash(JSON.stringify(properties));
-            
+
             context.close();
             callback();
         } catch (e) {
@@ -991,14 +683,14 @@ class FingerprintCollector {
     // 复制音频属性 (忽略敏感属性)
     copyAudioProperties(target, source, prefix = '') {
         const skipProperties = ['dopplerFactor', 'speedOfSound', 'currentTime'];
-        
+
         for (const prop in source) {
             try {
                 const value = source[prop];
                 const isFunction = typeof value === 'function';
                 const isSkipped = skipProperties.includes(prop);
                 const isValidType = typeof value === 'number' || typeof value === 'string' || typeof value === 'boolean';
-                
+
                 if (!isFunction && !isSkipped && isValidType) {
                     const key = prefix ? `${prefix}.${prop}` : prop;
                     target[key] = value;
@@ -1015,10 +707,10 @@ class FingerprintCollector {
             const OfflineAudioContextClass = window.OfflineAudioContext || window.webkitOfflineAudioContext;
             if (!OfflineAudioContextClass) {
                 results.fingerprints.compressor = 'not supported';
-                results.compressorNoiseDetection = { 
-                    hasDynamicNoise: false, 
+                results.compressorNoiseDetection = {
+                    hasDynamicNoise: false,
                     details: '不支持OfflineAudioContext',
-                    confidence: 1.0 
+                    confidence: 1.0
                 };
                 callback();
                 return;
@@ -1029,10 +721,10 @@ class FingerprintCollector {
 
         } catch (e) {
             results.fingerprints.compressor = 'error';
-            results.compressorNoiseDetection = { 
-                hasDynamicNoise: false, 
+            results.compressorNoiseDetection = {
+                hasDynamicNoise: false,
                 details: `压缩器测试错误: ${e.message}`,
-                confidence: 0 
+                confidence: 0
             };
             callback();
         }
@@ -1043,23 +735,23 @@ class FingerprintCollector {
         const testResults = [];
         let completedTests = 0;
         const totalTests = 2;
-        
+
         // 执行两次相同的测试
         for (let testIndex = 0; testIndex < totalTests; testIndex++) {
             setTimeout(() => {
                 this.runSingleCompressorTest(OfflineAudioContextClass, testIndex, (testResult) => {
                     testResults.push(testResult);
                     completedTests++;
-                    
+
                     if (completedTests === totalTests) {
                         // 分析两次测试结果
                         const noiseAnalysis = this.analyzeCompressorNoise(testResults);
-                        
+
                         // 选择第一次测试结果作为主要指纹
                         results.fingerprints.compressor = testResults[0].fingerprint;
                         results.compressorNoiseDetection = noiseAnalysis;
                         results.compressorTestDetails = testResults; // 保存详细测试数据
-                        
+
                         callback();
                     }
                 });
@@ -1072,7 +764,7 @@ class FingerprintCollector {
         try {
             // 创建离线音频上下文 (1秒，44100采样率)
             const offlineContext = new OfflineAudioContextClass(1, 44100, 44100);
-            
+
             // 创建振荡器
             const oscillator = offlineContext.createOscillator();
             oscillator.type = 'triangle';
@@ -1098,10 +790,10 @@ class FingerprintCollector {
             offlineContext.startRendering().then(buffer => {
                 const renderTime = performance.now() - testStartTime;
                 const channelData = buffer.getChannelData(0);
-                
+
                 // 计算多个区域的指纹以增强检测精度
                 const fingerprintData = this.calculateEnhancedCompressorFingerprint(channelData);
-                
+
                 callback({
                     testIndex: testIndex,
                     fingerprint: fingerprintData.mainFingerprint,
@@ -1111,7 +803,7 @@ class FingerprintCollector {
                     timestamp: Date.now(),
                     statistics: fingerprintData.statistics
                 });
-                
+
             }).catch(e => {
                 callback({
                     testIndex: testIndex,
@@ -1143,17 +835,17 @@ class FingerprintCollector {
             { start: 8000, end: 8500, name: 'mid' },
             { start: 15000, end: 15500, name: 'late' }
         ];
-        
+
         const fingerprints = {};
         const statistics = {};
-        
+
         segments.forEach(segment => {
             let sum = 0;
             let max = 0;
             let min = Infinity;
             let variance = 0;
             const values = [];
-            
+
             for (let i = segment.start; i < Math.min(segment.end, channelData.length); i++) {
                 const value = Math.abs(channelData[i]);
                 sum += value;
@@ -1161,10 +853,10 @@ class FingerprintCollector {
                 min = Math.min(min, value);
                 values.push(value);
             }
-            
+
             const mean = sum / values.length;
             variance = values.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) / values.length;
-            
+
             fingerprints[segment.name] = sum.toString();
             statistics[segment.name] = {
                 sum: sum,
@@ -1175,7 +867,7 @@ class FingerprintCollector {
                 count: values.length
             };
         });
-        
+
         return {
             mainFingerprint: fingerprints.main,
             detailedFingerprint: fingerprints,
@@ -1195,9 +887,9 @@ class FingerprintCollector {
                     confidence: 0
                 };
             }
-            
+
             const [test1, test2] = testResults;
-            
+
             // 检查是否有测试错误
             if (test1.fingerprint === 'error' || test2.fingerprint === 'error') {
                 return {
@@ -1207,12 +899,12 @@ class FingerprintCollector {
                     confidence: 0
                 };
             }
-            
+
             const analysisResults = [];
             const simpleResults = [];
             let hasDynamicNoise = false;
             let noiseIndicators = 0;
-            
+
             // 1. 主要指纹对比
             const mainFingerprintMatch = test1.fingerprint === test2.fingerprint;
             if (!mainFingerprintMatch) {
@@ -1224,20 +916,20 @@ class FingerprintCollector {
                 analysisResults.push('✅ 主要指纹一致：两次测试得到相同的压缩器指纹');
                 simpleResults.push('主指纹一致');
             }
-            
+
             // 2. 详细指纹对比（如果存在）
             if (test1.detailedFingerprint && test2.detailedFingerprint) {
                 const segments = Object.keys(test1.detailedFingerprint);
                 let mismatchedSegments = 0;
                 const segmentDetails = [];
-                
+
                 segments.forEach(segment => {
                     if (test1.detailedFingerprint[segment] !== test2.detailedFingerprint[segment]) {
                         mismatchedSegments++;
                         segmentDetails.push(segment);
                     }
                 });
-                
+
                 if (mismatchedSegments > 0) {
                     hasDynamicNoise = true;
                     noiseIndicators++;
@@ -1248,13 +940,13 @@ class FingerprintCollector {
                     simpleResults.push('所有段一致');
                 }
             }
-            
+
             // 3. 渲染时间差异分析
             if (test1.renderTime && test2.renderTime) {
                 const timeDiff = Math.abs(test1.renderTime - test2.renderTime);
                 const avgTime = (test1.renderTime + test2.renderTime) / 2;
                 const timeVariance = timeDiff / avgTime;
-                
+
                 if (timeVariance > 0.5) { // 50%以上的时间差异
                     noiseIndicators++;
                     analysisResults.push(`⚠️ 渲染时间异常：时间差异过大 ${timeDiff.toFixed(2)}ms (变化率 ${(timeVariance * 100).toFixed(1)}%)`);
@@ -1264,7 +956,7 @@ class FingerprintCollector {
                     simpleResults.push('渲染时间正常');
                 }
             }
-            
+
             // 4. 统计数据差异分析（如果存在）
             if (test1.statistics && test2.statistics) {
                 const statDifferences = this.compareStatistics(test1.statistics, test2.statistics);
@@ -1278,11 +970,11 @@ class FingerprintCollector {
                     simpleResults.push('统计数据一致');
                 }
             }
-            
+
             // 5. 时间戳分析
             const timestampDiff = Math.abs(test1.timestamp - test2.timestamp);
             analysisResults.push(`⏱️ 测试执行信息：两次测试间隔 ${timestampDiff}ms`);
-            
+
             // 生成结论
             let conclusion = '';
             if (!hasDynamicNoise) {
@@ -1292,15 +984,15 @@ class FingerprintCollector {
                 conclusion = `⚠️ 结论：检测到 ${noiseIndicators} 项异常指标，可能存在人为篡改或反指纹技术`;
                 simpleResults.push(`疑似篡改(${noiseIndicators}项异常)`);
             }
-            
+
             analysisResults.push(conclusion);
-            
+
             // 计算置信度
             let confidence = 0.8;
             if (hasDynamicNoise) {
                 confidence = Math.min(0.95, 0.6 + (noiseIndicators * 0.15));
             }
-            
+
             return {
                 hasDynamicNoise: hasDynamicNoise,
                 details: analysisResults.join('\n'),
@@ -1311,7 +1003,7 @@ class FingerprintCollector {
                 analysisTime: timestampDiff,
                 noiseIndicators: noiseIndicators
             };
-            
+
         } catch (error) {
             return {
                 hasDynamicNoise: false,
@@ -1326,30 +1018,30 @@ class FingerprintCollector {
     compareStatistics(stats1, stats2) {
         const differences = [];
         const segments = Object.keys(stats1);
-        
+
         segments.forEach(segment => {
             if (stats1[segment] && stats2[segment]) {
                 const s1 = stats1[segment];
                 const s2 = stats2[segment];
-                
+
                 // 比较方差（最敏感的指标）
                 const varianceDiff = Math.abs(s1.variance - s2.variance);
                 const avgVariance = (s1.variance + s2.variance) / 2;
-                
+
                 if (avgVariance > 0 && varianceDiff / avgVariance > 0.01) { // 1%的方差差异
                     differences.push(`${segment}段方差不同`);
                 }
-                
+
                 // 比较均值
                 const meanDiff = Math.abs(s1.mean - s2.mean);
                 const avgMean = (s1.mean + s2.mean) / 2;
-                
+
                 if (avgMean > 0 && meanDiff / avgMean > 0.001) { // 0.1%的均值差异
                     differences.push(`${segment}段均值不同`);
                 }
             }
         });
-        
+
         return differences;
     }
 
@@ -1358,12 +1050,12 @@ class FingerprintCollector {
         try {
             // 获取音频格式支持
             results.formats = this.getAudioFormatSupport();
-            
+
             const deviceInfo = {
                 // 音频支持检测
                 hasMediaDevices: !!navigator.mediaDevices,
                 hasGetUserMedia: !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia),
-                
+
                 // 浏览器信息
                 userAgent: navigator.userAgent.substring(0, 100), // 限制长度
                 platform: navigator.platform
@@ -1373,12 +1065,12 @@ class FingerprintCollector {
             if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
                 navigator.mediaDevices.enumerateDevices()
                     .then(devices => {
-                        const audioDevices = devices.filter(device => 
+                        const audioDevices = devices.filter(device =>
                             device.kind === 'audioinput' || device.kind === 'audiooutput'
                         );
                         deviceInfo.audioInputCount = audioDevices.filter(d => d.kind === 'audioinput').length;
                         deviceInfo.audioOutputCount = audioDevices.filter(d => d.kind === 'audiooutput').length;
-                        
+
                         results.devices = deviceInfo;
                         results.fingerprints.device = this.calculateAudioHash(JSON.stringify(deviceInfo));
                         callback();
@@ -1434,14 +1126,14 @@ class FingerprintCollector {
         try {
             // 执行音频噪点检测（仅动态噪点）
             const generalNoiseDetection = this.detectAudioNoise(audioResults);
-            
+
             // 获取压缩器特定的噪点检测结果
             const compressorNoiseDetection = audioResults.compressorNoiseDetection || {
                 hasDynamicNoise: false,
                 details: '未执行压缩器噪点检测',
                 confidence: 0
             };
-            
+
             // 合并噪点检测结果（仅动态噪点）
             const combinedNoiseDetection = {
                 general: generalNoiseDetection,
@@ -1451,7 +1143,7 @@ class FingerprintCollector {
                 overallConfidence: Math.max(generalNoiseDetection.confidence, compressorNoiseDetection.confidence),
                 summary: this.createNoiseDetectionSummary(generalNoiseDetection, compressorNoiseDetection)
             };
-            
+
             // 创建综合指纹对象
             const combined = {
                 supportInfo: audioResults.supportInfo || {},
@@ -1462,7 +1154,7 @@ class FingerprintCollector {
 
             // 保存详细的噪点检测结果
             this.fingerprint.audioNoiseDetection = combinedNoiseDetection;
-            
+
             // 如果有压缩器测试详情，也保存
             if (audioResults.compressorTestDetails) {
                 this.fingerprint.compressorTestDetails = audioResults.compressorTestDetails;
@@ -1472,7 +1164,7 @@ class FingerprintCollector {
             const combinedString = JSON.stringify(combined);
             return this.calculateAudioHash(combinedString);
         } catch (e) {
-            this.fingerprint.audioNoiseDetection = { 
+            this.fingerprint.audioNoiseDetection = {
                 general: { hasDynamicNoise: false, hasStaticNoise: false, details: 'error', confidence: 0 },
                 compressor: { hasDynamicNoise: false, details: 'error', confidence: 0 },
                 hasDynamicNoise: false,
@@ -1487,7 +1179,7 @@ class FingerprintCollector {
     // 创建篡改检测摘要
     createNoiseDetectionSummary(generalDetection, compressorDetection) {
         const summaryParts = [];
-        
+
         // 压缩器篡改检测摘要
         if (compressorDetection.hasDynamicNoise) {
             summaryParts.push(`⚠️ 检测到音频篡改迹象`);
@@ -1497,31 +1189,31 @@ class FingerprintCollector {
         } else {
             summaryParts.push('✅ 音频指纹未被篡改');
         }
-        
+
         // 一般篡改检测摘要
         if (generalDetection.hasDynamicNoise) {
             summaryParts.push(`⚠️ 发现其他异常指标`);
         }
-        
+
         // 综合结论
         if (!generalDetection.hasDynamicNoise && !compressorDetection.hasDynamicNoise) {
             summaryParts.push('✅ 所有检测项目均正常');
         }
-        
+
         // 添加置信度信息
         const maxConfidence = Math.max(generalDetection.confidence, compressorDetection.confidence);
         summaryParts.push(`检测可信度: ${(maxConfidence * 100).toFixed(1)}%`);
-        
+
         return summaryParts.join(' | ');
     }
 
     // 计算音频哈希
     calculateAudioHash(data) {
         let hash = 0;
-        
+
         try {
             let input;
-            
+
             // 处理不同类型的输入数据
             if (typeof data === 'object' && !Array.isArray(data)) {
                 // 对象类型，转换为JSON字符串
@@ -1538,14 +1230,14 @@ class FingerprintCollector {
                 // 其他类型，直接转换为字符串
                 input = String(data);
             }
-            
+
             // 生成哈希
             for (let i = 0; i < input.length; i++) {
                 const char = input.charCodeAt(i);
                 hash = ((hash << 5) - hash) + char;
                 hash = hash & hash; // 转换为32位整数
             }
-            
+
             return Math.abs(hash).toString();
         } catch (error) {
             console.error('Audio hash calculation error:', error);
@@ -1606,7 +1298,7 @@ class FingerprintCollector {
     // 收集插件信息
     collectPlugins() {
         const plugins = [];
-        
+
         if (navigator.plugins && navigator.plugins.length > 0) {
             for (let i = 0; i < navigator.plugins.length; i++) {
                 const plugin = navigator.plugins[i];
@@ -1627,20 +1319,20 @@ class FingerprintCollector {
         try {
             const results = [];
             const originalData = canvas.toDataURL();
-            
+
             // 方法1: 多次渲染一致性检测（检测动态噪点）
             for (let i = 0; i < 2; i++) {
                 // 清除并重新绘制相同内容
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
-                
+
                 ctx.textBaseline = 'top';
                 ctx.font = '14px Arial';
                 ctx.fillStyle = '#f60';
                 ctx.fillRect(125, 1, 62, 20);
-                
+
                 ctx.fillStyle = '#069';
                 ctx.fillText('Browser Fingerprint', 2, 15);
-                
+
                 ctx.fillStyle = 'rgba(102, 204, 0, 0.7)';
                 ctx.fillText('Canvas Test 🎨', 4, 45);
 
@@ -1648,24 +1340,24 @@ class FingerprintCollector {
                 ctx.arc(50, 25, 20, 0, Math.PI * 2, true);
                 ctx.closePath();
                 ctx.fill();
-                
+
                 results.push(canvas.toDataURL());
             }
-            
+
             // 检查一致性（动态噪点检测）
             const hasDynamicNoise = !results.every(data => data === originalData);
-            
+
             // 方法2: 像素级分析（固定噪点检测）
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             const pixelAnalysis = this.analyzeCanvasPixels(imageData.data);
-            
+
             // 方法3: 数据熵分析（辅助固定噪点检测）
             const entropy = this.calculateEntropy(originalData);
             const hasHighEntropy = entropy > 7.8;
-            
+
             // 综合判断固定噪点
             const hasStaticNoise = pixelAnalysis.hasNoise || hasHighEntropy;
-            
+
             let details = [];
             if (hasDynamicNoise) details.push('检测到动态噪点');
             if (hasStaticNoise) {
@@ -1673,14 +1365,14 @@ class FingerprintCollector {
                 if (hasHighEntropy) details.push(`检测到高熵固定噪点 (${entropy.toFixed(2)})`);
             }
             if (!hasDynamicNoise && !hasStaticNoise) details.push('未检测到噪点');
-            
+
             return {
                 hasDynamicNoise: hasDynamicNoise,
                 hasStaticNoise: hasStaticNoise,
                 details: details.join(', '),
                 confidence: hasDynamicNoise || hasStaticNoise ? 0.9 : 0.8
             };
-            
+
         } catch (error) {
             return {
                 hasDynamicNoise: false,
@@ -1696,14 +1388,14 @@ class FingerprintCollector {
         try {
             let suspiciousCount = 0;
             const totalPixels = pixelData.length / 4;
-            
+
             // 检查单像素随机变化
             for (let i = 0; i < pixelData.length; i += 4) {
                 const r = pixelData[i];
                 const g = pixelData[i + 1];
                 const b = pixelData[i + 2];
                 const a = pixelData[i + 3];
-                
+
                 // 检查是否有异常的像素值变化
                 if (a > 0) { // 只检查不透明像素
                     const variance = Math.abs(r - g) + Math.abs(g - b) + Math.abs(b - r);
@@ -1712,9 +1404,9 @@ class FingerprintCollector {
                     }
                 }
             }
-            
+
             const suspiciousRatio = suspiciousCount / totalPixels;
-            
+
             if (suspiciousRatio > 0.1) {
                 return {
                     hasNoise: true,
@@ -1723,13 +1415,13 @@ class FingerprintCollector {
                     details: `Suspicious pixel ratio: ${(suspiciousRatio * 100).toFixed(1)}%`
                 };
             }
-            
+
             return {
                 hasNoise: false,
                 type: 'pixel_clean',
                 confidence: 0.8
             };
-            
+
         } catch (error) {
             return {
                 hasNoise: false,
@@ -1745,20 +1437,20 @@ class FingerprintCollector {
         try {
             const results = [];
             const originalData = canvas.toDataURL();
-            
+
             // 方法1: 多次渲染一致性检测（检测动态噪点）
             for (let i = 0; i < 2; i++) {
                 // 清除并重新绘制相同内容
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
-                
+
                 ctx.textBaseline = 'top';
                 ctx.font = '14px Arial';
                 ctx.fillStyle = '#f60';
                 ctx.fillRect(125, 1, 62, 20);
-                
+
                 ctx.fillStyle = '#069';
                 ctx.fillText('Browser Fingerprint', 2, 15);
-                
+
                 ctx.fillStyle = 'rgba(102, 204, 0, 0.7)';
                 ctx.fillText('Canvas Test 🎨', 4, 45);
 
@@ -1766,24 +1458,24 @@ class FingerprintCollector {
                 ctx.arc(50, 25, 20, 0, Math.PI * 2, true);
                 ctx.closePath();
                 ctx.fill();
-                
+
                 results.push(canvas.toDataURL());
             }
-            
+
             // 检查一致性（动态噪点检测）
             const hasDynamicNoise = !results.every(data => data === originalData);
-            
+
             // 方法2: 像素级分析（固定噪点检测）
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             const pixelAnalysis = this.analyzeCanvasPixels(imageData.data);
-            
+
             // 方法3: 数据熵分析（辅助固定噪点检测）
             const entropy = this.calculateEntropy(originalData);
             const hasHighEntropy = entropy > 7.8;
-            
+
             // 综合判断固定噪点
             const hasStaticNoise = pixelAnalysis.hasNoise || hasHighEntropy;
-            
+
             let details = [];
             if (hasDynamicNoise) details.push('检测到动态噪点');
             if (hasStaticNoise) {
@@ -1791,14 +1483,14 @@ class FingerprintCollector {
                 if (hasHighEntropy) details.push(`检测到高熵固定噪点 (${entropy.toFixed(2)})`);
             }
             if (!hasDynamicNoise && !hasStaticNoise) details.push('未检测到噪点');
-            
+
             return {
                 hasDynamicNoise: hasDynamicNoise,
                 hasStaticNoise: hasStaticNoise,
                 details: details.join(', '),
                 confidence: hasDynamicNoise || hasStaticNoise ? 0.9 : 0.8
             };
-            
+
         } catch (error) {
             return {
                 hasDynamicNoise: false,
@@ -1814,7 +1506,7 @@ class FingerprintCollector {
         try {
             let hasDynamicNoise = false;
             const details = [];
-            
+
             // 方法1: 检查音频指纹的一致性（篡改检测）
             if (audioResults.fingerprints) {
                 const fingerprints = [
@@ -1822,7 +1514,7 @@ class FingerprintCollector {
                     audioResults.fingerprints.compressor,
                     audioResults.fingerprints.device
                 ];
-                
+
                 // 检查是否有异常短或长的指纹（可能表示被篡改）
                 fingerprints.forEach((fp, index) => {
                     if (typeof fp === 'string') {
@@ -1836,18 +1528,18 @@ class FingerprintCollector {
                     }
                 });
             }
-            
+
             if (!hasDynamicNoise) {
                 details.push('音频指纹长度检查正常');
             }
-            
+
             return {
                 hasDynamicNoise: hasDynamicNoise,
                 hasStaticNoise: false, // 不再检测固定噪点
                 details: details.join(', '),
                 confidence: hasDynamicNoise ? 0.7 : 0.8
             };
-            
+
         } catch (error) {
             return {
                 hasDynamicNoise: false,
@@ -1893,3 +1585,305 @@ class FingerprintCollector {
         return entropy;
     }
 }
+
+// 全局函数 - 严格按照参考网站的实现
+function getBrowserFingerPrint() {
+    const c = document.createElement("canvas");
+    c.width = 512;
+    c.height = 512;
+    
+    return new Promise((resolve, reject) => {
+        // 使用参考网站的cube绘制方法
+        webgl.draw.cube(c);
+        
+        window.setTimeout(function() {
+            try {
+                var gl = c.getContext("webgl", { preserveDrawingBuffer: true });
+                var buffer = new Uint8Array(gl.drawingBufferWidth * gl.drawingBufferHeight * 4);
+                gl.readPixels(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight, gl.RGBA, gl.UNSIGNED_BYTE, buffer);
+                
+                window.setTimeout(function() {
+                    // 使用参考网站的工具函数
+                    const utils = {
+                        hash: function(buffer) {
+                            return crypto.subtle.digest('SHA-256', buffer);
+                        },
+                        buf2hex: function(buffer) {
+                            return Array.from(new Uint8Array(buffer))
+                                .map(byte => byte.toString(16).padStart(2, '0'))
+                                .join('');
+                        }
+                    };
+                    
+                    utils.hash(buffer.buffer).then(utils.buf2hex).then(fingerprint => {
+                        resolve({
+                            fingerprint: fingerprint,
+                            canvas: c
+                        });
+                    }, reject);
+                }, 500);
+            } catch (error) {
+                reject(error);
+            }
+        }, 500);
+    });
+}
+
+// webgl对象 - 参考网站的绘制方法
+const webgl = {
+    draw: {
+        rectangle: function(canvas) {
+            var indices = [3, 2, 1, 3, 1, 0];
+            var gl = canvas.getContext("webgl", { preserveDrawingBuffer: true });
+            var vertex_buffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-.75, .75, 0, -.75, -.75, 0, .75, -.75, 0, .75, .75, 0]), gl.STATIC_DRAW);
+            gl.bindBuffer(gl.ARRAY_BUFFER, null);
+
+            var index_buffer = gl.createBuffer();
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index_buffer);
+            gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+
+            var vertShader = gl.createShader(gl.VERTEX_SHADER);
+            gl.shaderSource(vertShader, 'attribute vec3 coordinates;void main(void) { gl_Position = vec4(coordinates, 1.0);}');
+            gl.compileShader(vertShader);
+
+            var fragShader = gl.createShader(gl.FRAGMENT_SHADER);
+            gl.shaderSource(fragShader, 'void main(void) { gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);}');
+            gl.compileShader(fragShader);
+
+            var shaderProgram = gl.createProgram();
+            gl.attachShader(shaderProgram, vertShader);
+            gl.attachShader(shaderProgram, fragShader);
+            gl.linkProgram(shaderProgram);
+            gl.useProgram(shaderProgram);
+
+            gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index_buffer);
+
+            var coord = gl.getAttribLocation(shaderProgram, 'coordinates');
+            gl.vertexAttribPointer(coord, 3, gl.FLOAT, false, 0, 0);
+            gl.enableVertexAttribArray(coord);
+
+            gl.clearColor(0, 0, 0, 0);
+            gl.enable(gl.DEPTH_TEST);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+            gl.viewport(0, 0, canvas.width, canvas.height);
+            gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
+        },
+        cube: function(canvas) {
+            // 完全按照参考网站的实现
+            let ARRAY_TYPE = "undefined" != typeof Float32Array ? Float32Array : Array;
+            
+            function create() {
+                let out = new ARRAY_TYPE(16);
+                return ARRAY_TYPE != Float32Array && (out[1] = 0,
+                out[2] = 0,
+                out[3] = 0,
+                out[4] = 0,
+                out[6] = 0,
+                out[7] = 0,
+                out[8] = 0,
+                out[9] = 0,
+                out[11] = 0,
+                out[12] = 0,
+                out[13] = 0,
+                out[14] = 0),
+                out[0] = 1,
+                out[5] = 1,
+                out[10] = 1,
+                out[15] = 1,
+                out
+            }
+            
+            function perspective(out, fovy, aspect, near, far) {
+                let nf, f = 1 / Math.tan(fovy / 2);
+                return out[0] = f / aspect,
+                out[1] = 0,
+                out[2] = 0,
+                out[3] = 0,
+                out[4] = 0,
+                out[5] = f,
+                out[6] = 0,
+                out[7] = 0,
+                out[8] = 0,
+                out[9] = 0,
+                out[11] = -1,
+                out[12] = 0,
+                out[13] = 0,
+                out[15] = 0,
+                null !== far && far !== 1 / 0 ? (nf = 1 / (near - far),
+                out[10] = (far + near) * nf,
+                out[14] = 2 * far * near * nf) : (out[10] = -1,
+                out[14] = -2 * near),
+                out
+            }
+            
+            function translate(out, a, v) {
+                let a00, a01, a02, a03, a10, a11, a12, a13, a20, a21, a22, a23, x = v[0], y = v[1], z = v[2];
+                return a === out ? (out[12] = a[0] * x + a[4] * y + a[8] * z + a[12],
+                out[13] = a[1] * x + a[5] * y + a[9] * z + a[13],
+                out[14] = a[2] * x + a[6] * y + a[10] * z + a[14],
+                out[15] = a[3] * x + a[7] * y + a[11] * z + a[15]) : (a00 = a[0],
+                a01 = a[1],
+                a02 = a[2],
+                a03 = a[3],
+                a10 = a[4],
+                a11 = a[5],
+                a12 = a[6],
+                a13 = a[7],
+                a20 = a[8],
+                a21 = a[9],
+                a22 = a[10],
+                a23 = a[11],
+                out[0] = a00,
+                out[1] = a01,
+                out[2] = a02,
+                out[3] = a03,
+                out[4] = a10,
+                out[5] = a11,
+                out[6] = a12,
+                out[7] = a13,
+                out[8] = a20,
+                out[9] = a21,
+                out[10] = a22,
+                out[11] = a23,
+                out[12] = a00 * x + a10 * y + a20 * z + a[12],
+                out[13] = a01 * x + a11 * y + a21 * z + a[13],
+                out[14] = a02 * x + a12 * y + a22 * z + a[14],
+                out[15] = a03 * x + a13 * y + a23 * z + a[15]),
+                out
+            }
+            
+            const shaders = {
+                vertex: "\n          precision mediump float;\n          attribute vec4 avertPosition;\n          attribute vec4 avertColor;\n          varying vec4 vfragColor;\n          uniform mat4 umodelMatrix;\n          uniform mat4 uprojectionMatrix;\n          void main()\n          {\n            vfragColor = avertColor;\n            gl_Position  =  uprojectionMatrix * umodelMatrix * avertPosition;\n          }\n        ",
+                fragment: "\n          precision mediump float;\n          varying vec4 vfragColor;\n          void main()\n          {\n            gl_FragColor = vfragColor;\n          }\n        "
+            };
+            
+            class Cube {
+                constructor(gl) {
+                    this.gl = gl,
+                    this.buffers
+                }
+                setUp() {
+                    const positionBuffer = this.gl.createBuffer();
+                    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, positionBuffer);
+                    this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, 1, -1, 1, 1, 1, 1, -1, 1, 1, -1, -1, -1, -1, 1, -1, 1, 1, -1, 1, -1, -1, -1, 1, -1, -1, 1, 1, 1, 1, 1, 1, 1, -1, -1, -1, -1, 1, -1, -1, 1, -1, 1, -1, -1, 1, 1, -1, -1, 1, 1, -1, 1, 1, 1, 1, -1, 1, -1, -1, -1, -1, -1, 1, -1, 1, 1, -1, 1, -1]), this.gl.STATIC_DRAW);
+                    const faceColors = [[1, 1, 1, 1], [1, 0, 0, 1], [0, 1, 0, 1], [0, 0, 1, 1], [1, 1, 0, 1], [1, 0, 1, 1]];
+                    for (var colors = [], j = 0; j < faceColors.length; ++j) {
+                        const c = faceColors[j];
+                        colors = colors.concat(c, c, c, c)
+                    }
+                    const colorBuffer = this.gl.createBuffer();
+                    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, colorBuffer),
+                    this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(colors), this.gl.STATIC_DRAW);
+                    const indexBuffer = this.gl.createBuffer();
+                    this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, indexBuffer),
+                    this.gl.bufferData(this.gl.ELEMENT_ARRAY_BUFFER, new Uint16Array([0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7, 8, 9, 10, 8, 10, 11, 12, 13, 14, 12, 14, 15, 16, 17, 18, 16, 18, 19, 20, 21, 22, 20, 22, 23]), this.gl.STATIC_DRAW),
+                    this.buffers = {
+                        color: colorBuffer,
+                        indices: indexBuffer,
+                        position: positionBuffer
+                    }
+                }
+            }
+            
+            let webgl = new class {
+                constructor(canvas) {
+                    this.gl = canvas.getContext("webgl", {
+                        preserveDrawingBuffer: !0
+                    }),
+                    this.program,
+                    this.shaders = {},
+                    this.cubes = []
+                }
+                async setUp() {
+                    if (this.gl || (log("WebGL not supported, falling back on experimental-webgl"),
+                    this.gl = canvas.getContext("experimental-webgl", {
+                        preserveDrawingBuffer: !0
+                    })),
+                    !this.gl)
+                        return log("Your browser does not support WebGL"),
+                        null;
+                    let vertexShader = this.gl.createShader(this.gl.VERTEX_SHADER)
+                      , fragmentShader = this.gl.createShader(this.gl.FRAGMENT_SHADER);
+                    if (this.gl.shaderSource(vertexShader, shaders.vertex),
+                    this.gl.shaderSource(fragmentShader, shaders.fragment),
+                    this.program = this.gl.createProgram(),
+                    [vertexShader, fragmentShader].forEach((shader => {
+                        if (this.gl.compileShader(shader),
+                        !this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS))
+                            return error("ERROR compiling a shader!", this.gl.getShaderInfoLog(shader)),
+                            void this.gl.deleteShader(shader);
+                        this.gl.attachShader(this.program, shader)
+                    }
+                    )),
+                    this.gl.linkProgram(this.program),
+                    this.gl.getProgramParameter(this.program, this.gl.LINK_STATUS)) {
+                        if (this.gl.validateProgram(this.program),
+                        this.gl.getProgramParameter(this.program, this.gl.VALIDATE_STATUS))
+                            return this.shaders.attributes = {
+                                positionAttrib: this.gl.getAttribLocation(this.program, "avertPosition"),
+                                colorAttrib: this.gl.getAttribLocation(this.program, "avertColor")
+                            },
+                            this.shaders.uniforms = {
+                                modelMatrix: this.gl.getUniformLocation(this.program, "umodelMatrix"),
+                                projectionMatrix: this.gl.getUniformLocation(this.program, "uprojectionMatrix")
+                            },
+                            "Webgl Set Up";
+                        error("ERROR validating program!", this.gl.getProgramInfoLog(this.program))
+                    } else
+                        error("ERROR linking program!", this.gl.getProgramInfoLog(this.program))
+                }
+                clear(color) {
+                    return this.gl.clearColor(color[0], color[1], color[2], color[3]),
+                    this.gl.clearDepth(1),
+                    this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT),
+                    "Cleared"
+                }
+                makeCube() {
+                    let newCube = new Cube(this.gl);
+                    return newCube.setUp(),
+                    this.cubes.push(newCube),
+                    "FillRect called"
+                }
+                render() {
+                    for (let i = 0; i < this.cubes.length; i++) {
+                        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.cubes[i].buffers.position),
+                        this.gl.vertexAttribPointer(this.shaders.attributes.positionAttrib, 3, this.gl.FLOAT, this.gl.FALSE, 0 * Float32Array.BYTES_PER_ELEMENT, 0 * Float32Array.BYTES_PER_ELEMENT),
+                        this.gl.enableVertexAttribArray(this.shaders.attributes.positionAttrib),
+                        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.cubes[i].buffers.color),
+                        this.gl.vertexAttribPointer(this.shaders.attributes.colorAttrib, 4, this.gl.FLOAT, this.gl.FALSE, 0 * Float32Array.BYTES_PER_ELEMENT, 0 * Float32Array.BYTES_PER_ELEMENT),
+                        this.gl.enableVertexAttribArray(this.shaders.attributes.colorAttrib),
+                        this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, this.cubes[i].buffers.indices),
+                        this.gl.useProgram(this.program);
+                        const projectionMatrix = create()
+                          , modelMatrix = create();
+                        perspective(projectionMatrix, 45 * Math.PI / 180, this.gl.canvas.width / this.gl.canvas.height, .1, 100),
+                        translate(modelMatrix, modelMatrix, [0, 0, -6]),
+                        this.gl.uniformMatrix4fv(this.shaders.uniforms.projectionMatrix, !1, projectionMatrix),
+                        this.gl.uniformMatrix4fv(this.shaders.uniforms.modelMatrix, !1, modelMatrix),
+                        this.gl.drawElements(this.gl.TRIANGLES, 36, this.gl.UNSIGNED_SHORT, 0)
+                    }
+                }
+            }
+            (canvas);
+            
+            // 添加空的log和error函数以防出错
+            window.log = window.log || function() {};
+            window.error = window.error || function() {};
+            
+            webgl.setUp().then(( () => {
+                webgl.gl.viewport(0, 0, 500, 500),
+                webgl.makeCube(),
+                requestAnimationFrame((function() {
+                    webgl.clear([1, 1, 0, 1]),
+                    webgl.render()
+                }
+                ))
+            }
+            ))
+        }
+    }
+};

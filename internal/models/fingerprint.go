@@ -54,6 +54,7 @@ type NoiseDetection struct {
 
 // FingerprintRequest 接收前端提交的指纹数据
 type FingerprintRequest struct {
+	FingerprintHash         string           `json:"fingerprint_hash,omitempty"` // 前端预计算的指纹哈希（可选）
 	UserAgent               string           `json:"user_agent" binding:"required"`
 	ScreenResolution        string           `json:"screen_resolution" binding:"required"`
 	Timezone                string           `json:"timezone" binding:"required"`

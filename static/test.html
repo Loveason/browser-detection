@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>工具类测试页面</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            background: #f9f9f9;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #333;
+            border-bottom: 2px solid #007acc;
+            padding-bottom: 10px;
+        }
+        .test-button {
+            background: #007acc;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #005a9e;
+        }
+        .result-area {
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 10px;
+            margin-top: 10px;
+            min-height: 100px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            overflow-y: auto;
+            max-height: 200px;
+        }
+        .canvas-display {
+            border: 1px solid #ccc;
+            margin: 10px 0;
+        }
+        .full-width {
+            grid-column: 1 / -1;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 浏览器指纹检测工具类测试</h1>
+    <p>这个页面用于测试重构后的工具类功能。打开浏览器控制台查看详细日志。</p>
+
+    <div class="container">
+        <!-- 加密工具测试 -->
+        <div class="test-section">
+            <h3>🔐 CryptoUtils 测试</h3>
+            <button class="test-button" onclick="testCrypto()">测试加密功能</button>
+            <div class="result-area" id="crypto-result">点击按钮开始测试...</div>
+        </div>
+
+        <!-- Canvas工具测试 -->
+        <div class="test-section">
+            <h3>🎨 CanvasUtils 测试</h3>
+            <button class="test-button" onclick="testCanvas()">测试Canvas功能</button>
+            <div class="result-area" id="canvas-result">点击按钮开始测试...</div>
+            <canvas id="test-canvas" class="canvas-display" width="200" height="100" style="display:none;"></canvas>
+        </div>
+
+        <!-- WebGL工具测试 -->
+        <div class="test-section">
+            <h3>🖥️ WebGLUtils 测试</h3>
+            <button class="test-button" onclick="testWebGL()">测试WebGL功能</button>
+            <div class="result-area" id="webgl-result">点击按钮开始测试...</div>
+            <canvas id="webgl-canvas" class="canvas-display" width="300" height="200" style="display:none;"></canvas>
+        </div>
+
+        <!-- 音频工具测试 -->
+        <div class="test-section">
+            <h3>🔊 AudioUtils 测试</h3>
+            <button class="test-button" onclick="testAudio()">测试音频功能</button>
+            <div class="result-area" id="audio-result">点击按钮开始测试...</div>
+        </div>
+
+        <!-- 浏览器工具测试 -->
+        <div class="test-section">
+            <h3>🌐 BrowserUtils 测试</h3>
+            <button class="test-button" onclick="testBrowser()">测试浏览器功能</button>
+            <div class="result-area" id="browser-result">点击按钮开始测试...</div>
+        </div>
+
+        <!-- 现代收集器测试 -->
+        <div class="test-section">
+            <h3>📊 ModernCollector 测试</h3>
+            <button class="test-button" onclick="testCollector()">测试收集器</button>
+            <div class="result-area" id="collector-result">点击按钮开始测试...</div>
+        </div>
+    </div>
+
+    <!-- 综合测试 -->
+    <div class="test-section full-width">
+        <h3>🚀 综合性能测试</h3>
+        <button class="test-button" onclick="runAllTests()">运行所有测试</button>
+        <button class="test-button" onclick="runPerformanceTest()">性能测试</button>
+        <button class="test-button" onclick="clearAllResults()">清除结果</button>
+        <div class="result-area" id="comprehensive-result">点击按钮开始综合测试...</div>
+    </div>
+
+    <!-- 状态显示 -->
+    <div id="status-display"></div>
+
+    <!-- 引入工具类 -->
+    <script src="/static/js/utils/crypto-utils.js"></script>
+    <script src="/static/js/utils/canvas-utils.js"></script>
+    <script src="/static/js/utils/webgl-utils.js"></script>
+    <script src="/static/js/utils/audio-utils.js"></script>
+    <script src="/static/js/utils/browser-utils.js"></script>
+    <script src="/static/js/modern-fingerprint.js"></script>
+
+    <script>
+        // 工具函数
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status-display');
+            statusDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
+            setTimeout(() => statusDiv.innerHTML = '', 3000);
+        }
+
+        function updateResult(id, content) {
+            const element = document.getElementById(id);
+            element.innerHTML = content;
+        }
+
+        function appendResult(id, content) {
+            const element = document.getElementById(id);
+            element.innerHTML += content + '<br>';
+            element.scrollTop = element.scrollHeight;
+        }
+
+        // 测试加密工具
+        async function testCrypto() {
+            showStatus('正在测试CryptoUtils...', 'info');
+            updateResult('crypto-result', '正在测试...');
+
+            try {
+                const startTime = performance.now();
+
+                // 测试字符串哈希
+                const testString = 'Hello, Browser Fingerprint!';
+                const hash = await CryptoUtils.hashString(testString);
+                appendResult('crypto-result', `字符串哈希: ${hash.substring(0, 32)}...`);
+
+                // 测试简单哈希
+                const simpleHash = CryptoUtils.simpleHash(testString);
+                appendResult('crypto-result', `简单哈希: ${simpleHash}`);
+
+                // 测试熵值计算
+                const entropy = CryptoUtils.calculateEntropy([1, 2, 3, 4, 5, 1, 2, 3]);
+                appendResult('crypto-result', `熵值: ${entropy.toFixed(4)}`);
+
+                const endTime = performance.now();
+                appendResult('crypto-result', `✅ 测试完成，耗时: ${(endTime - startTime).toFixed(2)}ms`);
+                showStatus('CryptoUtils测试完成', 'success');
+
+            } catch (error) {
+                appendResult('crypto-result', `❌ 错误: ${error.message}`);
+                showStatus('CryptoUtils测试失败', 'error');
+            }
+        }
+
+        // 测试Canvas工具
+        async function testCanvas() {
+            showStatus('正在测试CanvasUtils...', 'info');
+            updateResult('canvas-result', '正在测试...');
+
+            try {
+                const startTime = performance.now();
+
+                // 创建Canvas
+                const canvas = CanvasUtils.createCanvas(200, 100);
+                appendResult('canvas-result', `Canvas创建: ${canvas.width}x${canvas.height}`);
+
+                // 绘制测试图案
+                const pattern = CanvasUtils.drawTestPattern(canvas);
+                appendResult('canvas-result', `测试图案: ${pattern.description}`);
+
+                // 分析像素
+                const analysis = CanvasUtils.analyzePixels(canvas);
+                appendResult('canvas-result', `像素分析: ${analysis.totalPixels}像素, 熵值: ${analysis.entropy?.toFixed(4)}`);
+
+                // 显示Canvas
+                const testCanvas = document.getElementById('test-canvas');
+                const ctx = testCanvas.getContext('2d');
+                ctx.drawImage(canvas, 0, 0, testCanvas.width, testCanvas.height);
+                testCanvas.style.display = 'block';
+
+                const endTime = performance.now();
+                appendResult('canvas-result', `✅ 测试完成，耗时: ${(endTime - startTime).toFixed(2)}ms`);
+                showStatus('CanvasUtils测试完成', 'success');
+
+            } catch (error) {
+                appendResult('canvas-result', `❌ 错误: ${error.message}`);
+                showStatus('CanvasUtils测试失败', 'error');
+            }
+        }
+
+        // 测试WebGL工具
+        async function testWebGL() {
+            showStatus('正在测试WebGLUtils...', 'info');
+            updateResult('webgl-result', '正在测试...');
+
+            try {
+                const startTime = performance.now();
+
+                // 检测支持
+                const support = WebGLUtils.detectSupport();
+                appendResult('webgl-result', `WebGL支持: ${support.basic ? '是' : '否'}`);
+
+                if (!support.basic) {
+                    appendResult('webgl-result', '❌ WebGL不支持，跳过测试');
+                    return;
+                }
+
+                // 创建上下文
+                const canvas = CanvasUtils.createCanvas(300, 200);
+                const gl = WebGLUtils.getContext(canvas);
+                appendResult('webgl-result', `WebGL上下文: ${gl ? '创建成功' : '创建失败'}`);
+
+                if (gl) {
+                    // 收集基础信息
+                    const basicInfo = WebGLUtils.collectBasicInfo(gl);
+                    appendResult('webgl-result', `渲染器: ${basicInfo.renderer}`);
+                    appendResult('webgl-result', `供应商: ${basicInfo.vendor}`);
+
+                    // 绘制红色矩形
+                    const redResult = await WebGLUtils.drawRedRectangle(canvas);
+                    appendResult('webgl-result', `红色矩形指纹: ${redResult.fingerprint.substring(0, 16)}...`);
+
+                    // 显示Canvas
+                    const webglCanvas = document.getElementById('webgl-canvas');
+                    const ctx = webglCanvas.getContext('2d');
+                    ctx.drawImage(canvas, 0, 0, webglCanvas.width, webglCanvas.height);
+                    webglCanvas.style.display = 'block';
+                }
+
+                const endTime = performance.now();
+                appendResult('webgl-result', `✅ 测试完成，耗时: ${(endTime - startTime).toFixed(2)}ms`);
+                showStatus('WebGLUtils测试完成', 'success');
+
+            } catch (error) {
+                appendResult('webgl-result', `❌ 错误: ${error.message}`);
+                showStatus('WebGLUtils测试失败', 'error');
+            }
+        }
+
+        // 测试音频工具
+        async function testAudio() {
+            showStatus('正在测试AudioUtils...', 'info');
+            updateResult('audio-result', '正在测试...');
+
+            try {
+                const startTime = performance.now();
+
+                // 检测支持
+                const support = AudioUtils.detectSupport();
+                appendResult('audio-result', `AudioContext支持: ${support.basicSupport ? '是' : '否'}`);
+
+                if (!support.basicSupport) {
+                    appendResult('audio-result', '❌ AudioContext不支持，跳过测试');
+                    return;
+                }
+
+                // 格式支持
+                const formats = AudioUtils.getFormatSupport();
+                const supportedFormats = Object.keys(formats).filter(f => formats[f]);
+                appendResult('audio-result', `支持格式: ${supportedFormats.join(', ')}`);
+
+                // 上下文属性
+                const contextProps = await AudioUtils.getContextProperties();
+                appendResult('audio-result', `上下文指纹: ${contextProps.fingerprint.substring(0, 16)}...`);
+
+                // 设备信息
+                const deviceInfo = await AudioUtils.getDeviceInfo();
+                appendResult('audio-result', `设备信息: ${deviceInfo.info.audioInputCount || 0}输入, ${deviceInfo.info.audioOutputCount || 0}输出`);
+
+                const endTime = performance.now();
+                appendResult('audio-result', `✅ 测试完成，耗时: ${(endTime - startTime).toFixed(2)}ms`);
+                showStatus('AudioUtils测试完成', 'success');
+
+            } catch (error) {
+                appendResult('audio-result', `❌ 错误: ${error.message}`);
+                showStatus('AudioUtils测试失败', 'error');
+            }
+        }
+
+        // 测试浏览器工具
+        async function testBrowser() {
+            showStatus('正在测试BrowserUtils...', 'info');
+            updateResult('browser-result', '正在测试...');
+
+            try {
+                const startTime = performance.now();
+
+                // 用户代理
+                const userAgent = BrowserUtils.getUserAgentInfo();
+                appendResult('browser-result', `平台: ${userAgent.platform}`);
+
+                // 屏幕信息
+                const screen = BrowserUtils.getScreenInfo();
+                appendResult('browser-result', `屏幕: ${screen.width}x${screen.height}, ${screen.colorDepth}位色深`);
+
+                // 浏览器类型
+                const browserType = BrowserUtils.detectBrowserType();
+                appendResult('browser-result', `浏览器: ${browserType.detected}`);
+
+                // 字体信息
+                const fonts = BrowserUtils.getFontInfo();
+                appendResult('browser-result', `字体数量: ${fonts.count}`);
+
+                // 存储支持
+                const storage = BrowserUtils.getStorageInfo();
+                const storageTypes = Object.keys(storage).filter(s => storage[s]);
+                appendResult('browser-result', `存储支持: ${storageTypes.join(', ')}`);
+
+                const endTime = performance.now();
+                appendResult('browser-result', `✅ 测试完成，耗时: ${(endTime - startTime).toFixed(2)}ms`);
+                showStatus('BrowserUtils测试完成', 'success');
+
+            } catch (error) {
+                appendResult('browser-result', `❌ 错误: ${error.message}`);
+                showStatus('BrowserUtils测试失败', 'error');
+            }
+        }
+
+        // 测试现代收集器
+        async function testCollector() {
+            showStatus('正在测试ModernCollector...', 'info');
+            updateResult('collector-result', '正在测试...');
+
+            try {
+                const startTime = performance.now();
+
+                // 创建收集器
+                const collector = new ModernFingerprintCollector();
+                appendResult('collector-result', '收集器创建成功');
+
+                // 收集指纹
+                appendResult('collector-result', '开始收集指纹...');
+                const fingerprint = await collector.collectAll();
+
+                appendResult('collector-result', `主指纹: ${fingerprint.mainFingerprint.substring(0, 32)}...`);
+                appendResult('collector-result', `基础指纹: ${fingerprint.basic?.fingerprint?.substring(0, 16)}...`);
+                appendResult('collector-result', `Canvas指纹: ${fingerprint.canvas?.fingerprint?.substring(0, 16)}...`);
+                appendResult('collector-result', `WebGL指纹: ${fingerprint.webgl?.fingerprint?.substring(0, 16)}...`);
+                appendResult('collector-result', `音频指纹: ${fingerprint.audio?.fingerprint?.substring(0, 16)}...`);
+
+                const endTime = performance.now();
+                appendResult('collector-result', `✅ 测试完成，耗时: ${(endTime - startTime).toFixed(2)}ms`);
+                showStatus('ModernCollector测试完成', 'success');
+
+            } catch (error) {
+                appendResult('collector-result', `❌ 错误: ${error.message}`);
+                showStatus('ModernCollector测试失败', 'error');
+            }
+        }
+
+        // 运行所有测试
+        async function runAllTests() {
+            showStatus('正在运行所有测试...', 'info');
+            updateResult('comprehensive-result', '开始综合测试...\n');
+
+            const tests = [
+                { name: 'CryptoUtils', func: testCrypto },
+                { name: 'CanvasUtils', func: testCanvas },
+                { name: 'WebGLUtils', func: testWebGL },
+                { name: 'AudioUtils', func: testAudio },
+                { name: 'BrowserUtils', func: testBrowser },
+                { name: 'ModernCollector', func: testCollector }
+            ];
+
+            const startTime = performance.now();
+            let passedTests = 0;
+
+            for (const test of tests) {
+                try {
+                    appendResult('comprehensive-result', `正在测试 ${test.name}...`);
+                    await test.func();
+                    appendResult('comprehensive-result', `✅ ${test.name} 测试通过`);
+                    passedTests++;
+                } catch (error) {
+                    appendResult('comprehensive-result', `❌ ${test.name} 测试失败: ${error.message}`);
+                }
+            }
+
+            const endTime = performance.now();
+            appendResult('comprehensive-result', `\n📊 测试总结:`);
+            appendResult('comprehensive-result', `- 总测试数: ${tests.length}`);
+            appendResult('comprehensive-result', `- 通过数: ${passedTests}`);
+            appendResult('comprehensive-result', `- 成功率: ${(passedTests / tests.length * 100).toFixed(1)}%`);
+            appendResult('comprehensive-result', `- 总耗时: ${(endTime - startTime).toFixed(2)}ms`);
+
+            showStatus(`综合测试完成 (${passedTests}/${tests.length})`, passedTests === tests.length ? 'success' : 'error');
+        }
+
+        // 性能测试
+        async function runPerformanceTest() {
+            showStatus('正在运行性能测试...', 'info');
+            updateResult('comprehensive-result', '开始性能测试...\n');
+
+            const iterations = 10;
+            appendResult('comprehensive-result', `测试循环次数: ${iterations}`);
+
+            // 测试哈希性能
+            const hashStartTime = performance.now();
+            for (let i = 0; i < iterations; i++) {
+                await CryptoUtils.hashString(`test-${i}`);
+            }
+            const hashEndTime = performance.now();
+            const avgHashTime = (hashEndTime - hashStartTime) / iterations;
+            appendResult('comprehensive-result', `平均哈希时间: ${avgHashTime.toFixed(2)}ms`);
+
+            // 测试Canvas性能
+            const canvasStartTime = performance.now();
+            for (let i = 0; i < iterations; i++) {
+                const canvas = CanvasUtils.createCanvas(100, 50);
+                CanvasUtils.drawTestPattern(canvas);
+            }
+            const canvasEndTime = performance.now();
+            const avgCanvasTime = (canvasEndTime - canvasStartTime) / iterations;
+            appendResult('comprehensive-result', `平均Canvas时间: ${avgCanvasTime.toFixed(2)}ms`);
+
+            appendResult('comprehensive-result', `✅ 性能测试完成`);
+            showStatus('性能测试完成', 'success');
+        }
+
+        // 清除所有结果
+        function clearAllResults() {
+            const resultIds = ['crypto-result', 'canvas-result', 'webgl-result', 'audio-result', 'browser-result', 'collector-result', 'comprehensive-result'];
+            resultIds.forEach(id => updateResult(id, '点击按钮开始测试...'));
+            
+            // 隐藏Canvas
+            document.getElementById('test-canvas').style.display = 'none';
+            document.getElementById('webgl-canvas').style.display = 'none';
+            
+            showStatus('所有结果已清除', 'info');
+        }
+
+        // 页面加载完成后的初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            showStatus('工具类测试页面已加载，可以开始测试', 'success');
+            
+            // 检查工具类是否已加载
+            const requiredClasses = ['CryptoUtils', 'CanvasUtils', 'WebGLUtils', 'AudioUtils', 'BrowserUtils', 'ModernFingerprintCollector'];
+            const missingClasses = requiredClasses.filter(cls => !window[cls]);
+            
+            if (missingClasses.length > 0) {
+                showStatus(`缺少工具类: ${missingClasses.join(', ')}`, 'error');
+            } else {
+                console.log('✅ 所有工具类已成功加载');
+            }
+        });
+    </script>
+</body>
+</html>

@@ -4,7 +4,10 @@ import (
 	"browser-detection/internal/models"
 	"browser-detection/internal/services"
 	"browser-detection/internal/utils"
+	"bytes"
 	"database/sql"
+	"io"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -22,14 +25,34 @@ func NewFingerprintHandler(service *services.FingerprintService) *FingerprintHan
 
 // SubmitFingerprint 提交指纹数据
 func (h *FingerprintHandler) SubmitFingerprint(c *gin.Context) {
+	// 先读取原始请求体用于调试
+	bodyBytes, err := c.GetRawData()
+	if err != nil {
+		log.Printf("Failed to read request body: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"message": "Failed to read request body",
+		})
+		return
+	}
+
+	// 重新设置请求体，以便后续绑定
+	c.Request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+
 	var req models.FingerprintRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		// 记录详细的错误信息
+		log.Printf("Failed to bind JSON request: %v", err)
+		log.Printf("Raw request body: %s", string(bodyBytes))
+		
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"message": "Invalid request data: " + err.Error(),
 		})
 		return
 	}
+
+	log.Printf("Successfully parsed fingerprint request from %s", req.UserAgent)
 
 	// 获取客户端IP
 	ipAddress := utils.GetClientIP(
@@ -41,6 +64,7 @@ func (h *FingerprintHandler) SubmitFingerprint(c *gin.Context) {
 	// 处理指纹
 	response, err := h.service.ProcessFingerprint(&req, ipAddress)
 	if err != nil {
+		log.Printf("Failed to process fingerprint: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"message": "Failed to process fingerprint: " + err.Error(),
@@ -48,6 +72,7 @@ func (h *FingerprintHandler) SubmitFingerprint(c *gin.Context) {
 		return
 	}
 
+	log.Printf("Successfully processed fingerprint: %s", response.FingerprintHash)
 	c.JSON(http.StatusOK, response)
 }
 

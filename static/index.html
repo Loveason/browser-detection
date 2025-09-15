@@ -23,7 +23,7 @@
             </div>
 
             <!-- 指纹信息展示 -->
-            <div id="fingerprint-results" class="results-container" style="display: none;">
+            <div id="fingerprint-results" class="results-container" style="display: block;">
                 <!-- 基础信息卡片 -->
                 <div class="card">
                     <h3>📱 基础信息</h3>
@@ -33,12 +33,44 @@
                             <span id="user-agent"></span>
                         </div>
                         <div class="info-item">
+                            <label>浏览器类型:</label>
+                            <span id="browser-type"></span>
+                        </div>
+                        <div class="info-item">
+                            <label>操作系统:</label>
+                            <span id="operating-system"></span>
+                        </div>
+                        <div class="info-item">
                             <label>屏幕分辨率:</label>
                             <span id="screen-resolution"></span>
                         </div>
                         <div class="info-item">
+                            <label>颜色深度:</label>
+                            <span id="screen-color-depth"></span>
+                        </div>
+                        <div class="info-item">
+                            <label>设备像素比:</label>
+                            <span id="device-pixel-ratio"></span>
+                        </div>
+                        <div class="info-item">
                             <label>时区:</label>
                             <span id="timezone"></span>
+                        </div>
+                        <div class="info-item">
+                            <label>时区偏移:</label>
+                            <span id="timezone-offset"></span>
+                        </div>
+                        <div class="info-item">
+                            <label>CPU核心数:</label>
+                            <span id="cpu-cores"></span>
+                        </div>
+                        <div class="info-item">
+                            <label>内存:</label>
+                            <span id="memory"></span>
+                        </div>
+                        <div class="info-item">
+                            <label>触摸点数:</label>
+                            <span id="touch-points"></span>
                         </div>
                         <div class="info-item">
                             <label>语言:</label>
@@ -68,6 +100,22 @@
                     <h3>🎨 Canvas 指纹</h3>
                     <div class="canvas-container">
                         <canvas id="fingerprint-canvas" width="200" height="50"></canvas>
+                        <div class="info-item">
+                            <label>Canvas指纹:</label>
+                            <span id="canvas-fingerprint"></span>
+                        </div>
+                        <div class="info-item">
+                            <label>像素总数:</label>
+                            <span id="canvas-pixels"></span>
+                        </div>
+                        <div class="info-item">
+                            <label>熵值:</label>
+                            <span id="canvas-entropy"></span>
+                        </div>
+                        <div class="info-item">
+                            <label>一致性:</label>
+                            <span id="canvas-consistency"></span>
+                        </div>
                         <div class="info-item">
                             <label>Canvas 数据:</label>
                             <textarea id="canvas-data" class="canvas-data-textarea" readonly></textarea>
@@ -99,15 +147,7 @@
                     <h3>🖥️ WebGL 指纹检测</h3>
                     
                     <!-- 指纹欺骗总览 -->
-                    <div class="webgl-spoofed-section">
-                        <h4>指纹欺骗检测</h4>
-                        <div class="info-grid">
-                            <div class="info-item">
-                                <label>WebGL指纹是否被篡改:</label>
-                                <span id="webgl-fingerprint-spoofed" class="webgl-indicator"></span>
-                            </div>
-                        </div>
-                    </div>
+                    <!-- 指纹欺骗检测部分已移除，只保留噪点检测 -->
 
                     <!-- WebGL支持检测 -->
                     <div class="webgl-support-section">
@@ -125,12 +165,34 @@
                                 <label>WebGL readPixels:</label>
                                 <span id="webgl-readpixels-support"></span>
                             </div>
+                            <div class="info-item">
+                                <label>支持详情:</label>
+                                <span id="webgl-support-details"></span>
+                            </div>
                         </div>
                     </div>
 
                     <!-- 指纹结果 -->
                     <div class="webgl-fingerprint-section">
                         <h4>指纹结果</h4>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <label>WebGL指纹:</label>
+                                <span id="webgl-fingerprint"></span>
+                            </div>
+                            <div class="info-item">
+                                <label>红色矩形哈希:</label>
+                                <span id="webgl-rectangle-hash"></span>
+                            </div>
+                            <div class="info-item">
+                                <label>彩色立方体哈希:</label>
+                                <span id="webgl-cube-hash"></span>
+                            </div>
+                            <div class="info-item">
+                                <label>GLSL版本:</label>
+                                <span id="webgl-glsl-version"></span>
+                            </div>
+                        </div>
                         <div class="webgl-fingerprint-grid">
                             <!-- 红色矩形指纹 -->
                             <div class="fingerprint-method">
@@ -245,6 +307,10 @@
                                 <label>createDynamicsCompressor:</label>
                                 <span id="audio-create-compressor"></span>
                             </div>
+                            <div class="info-item">
+                                <label>支持详情:</label>
+                                <span id="audio-support-details"></span>
+                            </div>
                         </div>
                     </div>
 
@@ -285,6 +351,10 @@
                                 <label>WebM:</label>
                                 <span id="audio-format-webm"></span>
                             </div>
+                            <div class="info-item">
+                                <label>支持格式总结:</label>
+                                <span id="audio-formats"></span>
+                            </div>
                         </div>
                     </div>
 
@@ -310,6 +380,10 @@
                             <div class="info-item">
                                 <label>属性指纹:</label>
                                 <span id="audio-properties-fingerprint" class="hash-value"></span>
+                            </div>
+                            <div class="info-item">
+                                <label>音频指纹:</label>
+                                <span id="audio-fingerprint" class="hash-value"></span>
                             </div>
                             <div class="info-item">
                                 <label>压缩器指纹:</label>
@@ -353,10 +427,6 @@
                                     <span id="audio-compressor-tests">N/A</span>
                                 </div>
                                 <div class="info-item">
-                                    <label>分析时间:</label>
-                                    <span id="audio-compressor-time">N/A</span>
-                                </div>
-                                <div class="info-item">
                                     <label>指纹匹配:</label>
                                     <span id="audio-fingerprint-match">N/A</span>
                                 </div>
@@ -387,6 +457,10 @@
                         <label>检测到的字体数量:</label>
                         <span id="font-count"></span>
                     </div>
+                    <div class="info-item">
+                        <label>字体指纹:</label>
+                        <span id="font-fingerprint"></span>
+                    </div>
                     <div class="font-list" id="font-list"></div>
                 </div>
 
@@ -400,9 +474,28 @@
                     <div class="plugin-list" id="plugin-list"></div>
                 </div>
 
+                <!-- 存储支持卡片 -->
+                <div class="card">
+                    <h3>💾 存储支持</h3>
+                    <div class="info-item">
+                        <label>支持的存储类型:</label>
+                        <span id="storage-support"></span>
+                    </div>
+                </div>
+
                 <!-- 指纹哈希卡片 -->
                 <div class="card fingerprint-hash">
                     <h3>🔐 唯一指纹标识</h3>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <label>主指纹:</label>
+                            <span id="main-fingerprint" class="hash-value"></span>
+                        </div>
+                        <div class="info-item">
+                            <label>收集时间:</label>
+                            <span id="collection-time"></span>
+                        </div>
+                    </div>
                     <div class="hash-container">
                         <code id="fingerprint-hash"></code>
                         <button id="copy-hash" class="copy-btn">复制</button>
@@ -465,7 +558,48 @@
         <span id="notification-text"></span>
     </div>
 
-    <script src="/static/js/fingerprint.js"></script>
-    <script src="/static/js/app.js"></script>
+    <!-- 工具类 -->
+    <script src="/static/js/utils/crypto-utils.js"></script>
+    <script src="/static/js/utils/canvas-utils.js"></script>
+    <script src="/static/js/utils/webgl-utils.js"></script>
+    <script src="/static/js/utils/audio-utils.js"></script>
+    <script src="/static/js/utils/browser-utils.js"></script>
+    
+    <!-- 重构后的模块 -->
+    <script src="/static/js/modern-fingerprint.js"></script>
+    <script src="/static/js/modern-app.js"></script>
+    
+    <!-- 应用初始化 -->
+    <script>
+        // 基础测试
+        console.log('页面开始加载');
+        
+        // 使用新的模块化应用
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOMContentLoaded 事件触发');
+            console.log('window.ModernBrowserDetectionApp:', window.ModernBrowserDetectionApp);
+            console.log('window.ModernFingerprintCollector:', window.ModernFingerprintCollector);
+            
+            // 先测试基本的DOM操作
+            const testElement = document.getElementById('user-agent');
+            console.log('user-agent 元素:', testElement);
+            if (testElement) {
+                testElement.textContent = '页面加载测试成功';
+                console.log('设置测试文本成功');
+            }
+            
+            if (window.ModernBrowserDetectionApp && window.ModernFingerprintCollector) {
+                console.log('使用重构后的模块化架构');
+                try {
+                    window.app = new ModernBrowserDetectionApp();
+                    console.log('应用初始化成功');
+                } catch (error) {
+                    console.error('应用初始化失败:', error);
+                }
+            } else {
+                console.error('模块化架构加载失败');
+            }
+        });
+    </script>
 </body>
 </html>

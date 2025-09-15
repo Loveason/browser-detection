@@ -22,24 +22,34 @@ func NewFingerprintService(db *utils.Database) *FingerprintService {
 
 // ProcessFingerprint 处理指纹数据
 func (fs *FingerprintService) ProcessFingerprint(req *models.FingerprintRequest, ipAddress string) (*models.FingerprintResponse, error) {
-	// 生成指纹哈希
-	fingerprintData := map[string]interface{}{
-		"user_agent":        req.UserAgent,
-		"screen_resolution": req.ScreenResolution,
-		"timezone":          req.Timezone,
-		"language":          req.Language,
-		"platform":          req.Platform,
-		"canvas":            req.Canvas,
-		"webgl":             req.WebGL,
-		"audio":             req.Audio,
-		"fonts":             req.Fonts,
-		"plugins":           req.Plugins,
-		"touch_support":     req.TouchSupport,
-		"cookie_enabled":    req.CookieEnabled,
-		"do_not_track":      req.DoNotTrack,
+	// 使用前端提交的指纹哈希，如果没有则生成
+	var fingerprintHash string
+	if req.FingerprintHash != "" {
+		// 使用前端预计算的指纹哈希
+		fingerprintHash = req.FingerprintHash
+		log.Printf("使用前端预计算的指纹哈希: %s", fingerprintHash)
+	} else {
+		// 后端计算指纹哈希（兼容旧版本）
+		fingerprintData := map[string]interface{}{
+			"user_agent":        req.UserAgent,
+			"screen_resolution": req.ScreenResolution,
+			"timezone":          req.Timezone,
+			"language":          req.Language,
+			"platform":          req.Platform,
+			"canvas":            req.Canvas,
+			"webgl":             req.WebGL,
+			"audio":             req.Audio,
+			"fonts":             req.Fonts,
+			"plugins":           req.Plugins,
+			"touch_support":     req.TouchSupport,
+			"cookie_enabled":    req.CookieEnabled,
+			"do_not_track":      req.DoNotTrack,
+		}
+		fingerprintHash = utils.GenerateFingerprintHash(fingerprintData)
+		log.Printf("后端计算的指纹哈希: %s", fingerprintHash)
 	}
 
-	fingerprintHash := utils.GenerateFingerprintHash(fingerprintData)
+	// 计算其他哈希值
 	canvasHash := utils.GenerateCanvasHash(req.Canvas)
 	webglHash := utils.GenerateFingerprintHash(map[string]interface{}{"webgl": req.WebGL})
 	audioHash := utils.GenerateFingerprintHash(map[string]interface{}{"audio": req.Audio})
